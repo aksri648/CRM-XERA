@@ -7,7 +7,7 @@ import { useSSE } from '../hooks/useSSE';
 import AgentResponseRenderer from '../components/AgentResponseRenderer';
 
 const suggestionPills = [
-  'Loyal Customers', 'Inactive High-Value Customers', 'Reactivation Prospects', 'VIP Segment', 'New Customers',
+  'Active Buyers', 'At risk of losing buyers', 'VIP', 'New Buyers', 'Value Buyers',
 ];
 
 export default function AIStudio() {
@@ -81,7 +81,7 @@ export default function AIStudio() {
           {suggestionPills.map(pill => (
             <button
               key={pill}
-              onClick={() => handleSend(`Help me create a campaign for: ${pill}`)}
+              onClick={() => handleSend(`Create a marketing campaign targeting the "${pill}" customer segment.`)}
               className="border border-[#0fd4b4] text-[#0fd4b4] rounded-full px-4 py-2 text-sm hover:bg-[#0fd4b4] hover:text-white transition-colors"
             >
               {pill}

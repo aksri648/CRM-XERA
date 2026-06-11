@@ -1,93 +1,121 @@
+import random
 from crewai import Crew, Process, Task
 from crew.llm_config import get_llm
-from crew.agents.intent_classifier import create_intent_classifier
-from crew.agents.data_analyst import create_data_analyst
-from crew.agents.segment_builder import create_segment_builder
-from crew.agents.message_composer import create_message_composer
-from crew.agents.campaign_dispatcher import create_campaign_dispatcher
-from schemas.responses import (
-    IntentResult, DataAnalysisResult, SegmentBuildResult,
-    MessageComposerResult, CampaignDispatchResult,
-)
-import json
+from crew.agents.campaign_synthesizer import create_campaign_synthesizer
+from schemas.responses import CampaignDetailsResult
+
+
+ALLOWED_AUDIENCES = [
+    "Active Buyers",
+    "At risk of losing buyers",
+    "VIP",
+    "New Buyers",
+    "Value Buyers",
+]
+
+PRODUCT_CATEGORIES = [
+    "Fashion",
+    "Beauty & Personal Care",
+    "Electronics",
+    "Home & Kitchen",
+    "Health & Wellness",
+    "Sports & Fitness",
+    "Books & Stationery",
+    "Toys & Games",
+    "Groceries",
+    "Jewelry & Accessories",
+]
 
 
 class CampaignCrew:
     def __init__(self):
         self.llm = get_llm()
-        self.intent_classifier = create_intent_classifier(self.llm)
-        self.data_analyst = create_data_analyst(self.llm)
-        self.segment_builder = create_segment_builder(self.llm)
-        self.message_composer = create_message_composer(self.llm)
-        self.campaign_dispatcher = create_campaign_dispatcher(self.llm)
+        self.synthesizer = create_campaign_synthesizer(self.llm)
 
     def run(self, user_message: str, context: dict) -> list[dict]:
-        events = []
+        fallback_category = random.choice(PRODUCT_CATEGORIES)
 
-        intent_task = Task(
-            description=f"Classify this user message: '{user_message}'. Return ONLY valid JSON matching the IntentResult schema.",
-            expected_output='JSON object with intent, confidence, extracted_params, routing_reason',
-            agent=self.intent_classifier,
-            output_pydantic=IntentResult,
-        )
+        task = Task(
+            description=f"""You are a D2C marketing campaign strategist.
 
-        data_task = Task(
-            description=f"Analyze this CRM context data and provide a structured summary: {json.dumps(context)}",
-            expected_output='JSON object with summary, key_metrics, customer_segments_found, recommended_channels, data_quality_notes, raw_context_used',
-            agent=self.data_analyst,
-            output_pydantic=DataAnalysisResult,
-        )
+USER REQUEST:
+\"\"\"{user_message}\"\"\"
 
-        segment_task = Task(
-            description=f"Based on the user message '{user_message}', create segment filter rules. Return ONLY valid JSON matching SegmentBuildResult.",
-            expected_output='JSON object with segment_name, description, filter_rules, logic, estimated_count, confidence, caveats, filter_rules_summary',
-            agent=self.segment_builder,
-            output_pydantic=SegmentBuildResult,
-        )
+YOUR JOB:
+Produce one campaign plan as STRICT JSON. Follow these rules exactly.
 
-        compose_task = Task(
-            description=f"Write campaign message variants for this request: '{user_message}'. Return ONLY valid JSON matching MessageComposerResult.",
-            expected_output='JSON object with channel, segment_context, variant_a, variant_b, recommended_variant, send_time_suggestion, personalization_vars',
-            agent=self.message_composer,
-            output_pydantic=MessageComposerResult,
-        )
+1. "Campaign Title" - a compelling, concise campaign name (5-10 words).
 
-        dispatch_task = Task(
-            description=f"Validate and produce campaign launch manifest for: '{user_message}'. Return ONLY valid JSON matching CampaignDispatchResult.",
-            expected_output='JSON object with valid, validation_errors, campaign_manifest, estimated_audience, estimated_cost_inr, estimated_revenue_inr, confidence_score, ai_reasoning, ready_to_launch',
-            agent=self.campaign_dispatcher,
-            output_pydantic=CampaignDispatchResult,
+2. "Target Audience" - MUST be EXACTLY ONE of these five values (copy verbatim, including capitalization):
+   {ALLOWED_AUDIENCES}
+   Infer the best match from the user's request. Mapping hints:
+   - "loyal" / "active" / "repeat buyers" -> "Active Buyers"
+   - "inactive" / "lapsed" / "winback" / "reactivation" / "churning" -> "At risk of losing buyers"
+   - "vip" / "high spend" / "top tier" / "premium" -> "VIP"
+   - "new" / "first time" / "welcome" / "onboarding" -> "New Buyers"
+   - "value" / "mid tier" / "growing" / "engaged but not vip" -> "Value Buyers"
+
+3. "Description" - a crisp 2-3 sentence summary of the campaign strategy. Cover the goal, the message angle, and why it will work for this segment.
+
+4. "ProductCategory" - choose from this list ONLY:
+   {PRODUCT_CATEGORIES}
+   Rules:
+   - If the user request explicitly names a product or category (e.g. "skincare", "shoes", "sneakers", "headphones", "novels"), pick the closest match from the list.
+   - If the user request does NOT name any product or category, use exactly: "{fallback_category}"
+
+OUTPUT FORMAT:
+Return ONLY raw JSON. No markdown, no code fences, no commentary.
+Exact shape:
+{{
+  "CampaignDetails": {{
+    "Campaign Title": "...",
+    "Target Audience": "...",
+    "Description": "...",
+    "ProductCategory": "..."
+  }}
+}}""",
+            expected_output=(
+                'A single JSON object: {"CampaignDetails": {"Campaign Title": str, '
+                '"Target Audience": one of the five allowed values, "Description": str, '
+                '"ProductCategory": one of the listed categories}}. No prose, no fences.'
+            ),
+            agent=self.synthesizer,
+            output_pydantic=CampaignDetailsResult,
         )
 
         crew = Crew(
-            agents=[self.intent_classifier, self.data_analyst, self.segment_builder, self.message_composer, self.campaign_dispatcher],
-            tasks=[intent_task, data_task, segment_task, compose_task, dispatch_task],
+            agents=[self.synthesizer],
+            tasks=[task],
             process=Process.sequential,
             function_calling_llm=self.llm,
             verbose=False,
         )
 
         result = crew.kickoff()
-        return self._parse_to_events(result, user_message)
+        return self._parse_to_events(result, user_message, fallback_category)
 
-    def _parse_to_events(self, result, user_message) -> list[dict]:
+    def _parse_to_events(self, result, user_message: str, fallback_category: str) -> list[dict]:
         events = []
-        events.append({"type": "text", "content": f"Analyzing your request: '{user_message}'..."})
-        events.append({"type": "text", "content": "I've analyzed your request and prepared the following proposals."})
+        events.append({"type": "text", "content": f"Analyzing your brief: \"{user_message}\""})
 
-        if result and result.pydantic:
-            dispatch = result.pydantic
-            if hasattr(dispatch, 'campaign_manifest') and dispatch.campaign_manifest:
-                events.append({
-                    "type": "campaign_proposal",
-                    "data": {
-                        "campaign_manifest": dispatch.campaign_manifest,
-                        "estimated_audience": dispatch.estimated_audience,
-                        "confidence_score": dispatch.confidence_score,
-                        "ai_reasoning": dispatch.ai_reasoning,
-                        "ready_to_launch": dispatch.ready_to_launch,
-                    },
-                })
+        details_payload = None
+        if result and getattr(result, "pydantic", None):
+            details_payload = result.pydantic.model_dump(by_alias=True)
 
+        if not details_payload:
+            details_payload = {
+                "CampaignDetails": {
+                    "Campaign Title": "Custom Marketing Campaign",
+                    "Target Audience": "Active Buyers",
+                    "Description": (
+                        f"A campaign tailored to your brief: \"{user_message}\". "
+                        "Refine the audience and angle before launch."
+                    ),
+                    "ProductCategory": fallback_category,
+                }
+            }
+
+        events.append({"type": "text", "content": "Here is your campaign:"})
+        events.append({"type": "campaign_details", "data": details_payload})
         events.append({"type": "done"})
         return events

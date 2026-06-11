@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 
@@ -79,3 +79,16 @@ class OpportunityScanResult(BaseModel):
     scan_summary: str
     data_analyzed: dict
     scan_timestamp: str
+
+
+class CampaignDetails(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    campaign_title: str = Field(alias="Campaign Title")
+    target_audience: str = Field(alias="Target Audience")
+    description: str = Field(alias="Description")
+    product_category: str = Field(alias="ProductCategory")
+
+
+class CampaignDetailsResult(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    campaign_details: CampaignDetails = Field(alias="CampaignDetails")

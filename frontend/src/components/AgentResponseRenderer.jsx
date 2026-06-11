@@ -1,4 +1,4 @@
-import { Sparkles, TrendingUp, AlertCircle, CheckCircle, XCircle, Lightbulb, Bot } from 'lucide-react';
+import { Sparkles, TrendingUp, AlertCircle, CheckCircle, XCircle, Lightbulb, Bot, Target, Package, Megaphone } from 'lucide-react';
 
 function ChannelBadge({ channel }) {
   const colors = { whatsapp: 'bg-green-100 text-green-700', email: 'bg-blue-100 text-blue-700', sms: 'bg-yellow-100 text-yellow-700', rcs: 'bg-purple-100 text-purple-700' };
@@ -42,6 +42,67 @@ function MessageProposalCard({ data }) {
             <button className="mt-2 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 rounded-lg px-3 py-1.5 text-xs w-full transition-colors">Use This</button>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function CampaignDetailsCard({ data }) {
+  const details = data?.CampaignDetails || data?.campaign_details || data || {};
+  const title = details['Campaign Title'] || details.campaign_title || 'Untitled Campaign';
+  const audience = details['Target Audience'] || details.target_audience || '—';
+  const description = details['Description'] || details.description || '';
+  const category = details['ProductCategory'] || details.product_category || '—';
+
+  const audienceColors = {
+    'Active Buyers': 'bg-green-100 text-green-700 border-green-200',
+    'At risk of losing buyers': 'bg-red-100 text-red-700 border-red-200',
+    'VIP': 'bg-purple-100 text-purple-700 border-purple-200',
+    'New Buyers': 'bg-blue-100 text-blue-700 border-blue-200',
+    'Value Buyers': 'bg-amber-100 text-amber-700 border-amber-200',
+  };
+  const audienceClass = audienceColors[audience] || 'bg-gray-100 text-gray-700 border-gray-200';
+
+  return (
+    <div className="border border-[#0fd4b4]/40 rounded-2xl bg-gradient-to-br from-teal-50/40 to-white shadow-sm overflow-hidden mt-2">
+      <div className="px-5 py-3 border-b border-gray-100 bg-white/60 flex items-center gap-2">
+        <Megaphone size={16} className="text-[#0fd4b4]" />
+        <span className="text-xs font-semibold text-[#0fd4b4] uppercase tracking-wide">Campaign Plan</span>
+      </div>
+      <div className="p-5">
+        <h3 className="text-lg font-bold text-gray-900 leading-snug">{title}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-gray-100">
+            <Target size={16} className="text-gray-500 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase">Target Audience</p>
+              <span className={`mt-1 inline-block text-xs font-medium px-2 py-1 rounded-full border ${audienceClass}`}>
+                {audience}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-gray-100">
+            <Package size={16} className="text-gray-500 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase">Product Category</p>
+              <p className="mt-1 text-sm font-medium text-gray-900">{category}</p>
+            </div>
+          </div>
+        </div>
+        {description && (
+          <div className="mt-4 p-3 rounded-xl bg-white border border-gray-100">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Strategy</p>
+            <p className="text-sm text-gray-700 leading-relaxed">{description}</p>
+          </div>
+        )}
+        <div className="flex gap-2 mt-4">
+          <button className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors">
+            Launch Campaign
+          </button>
+          <button className="border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 rounded-lg px-4 py-2 text-sm transition-colors">
+            Edit
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -170,6 +231,7 @@ export default function AgentResponseRenderer({ events = [] }) {
           case 'segment_proposal': return <SegmentProposalCard key={i} data={event.data} />;
           case 'message_proposal': return <MessageProposalCard key={i} data={event.data} />;
           case 'campaign_proposal': return <CampaignProposalCard key={i} data={event.data} />;
+          case 'campaign_details': return <CampaignDetailsCard key={i} data={event.data} />;
           case 'insight_report': return <InsightReportCard key={i} data={event.data} />;
           case 'opportunity_list': return <OpportunityListCard key={i} data={event.data} />;
           case 'error': return <ErrorCard key={i} message={event.message} />;
