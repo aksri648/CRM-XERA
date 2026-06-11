@@ -86,6 +86,23 @@ router.patch('/:id/approve', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.patch('/:id', async (req, res, next) => {
+  try {
+    const { title, segmentId, channel, messageTemplate, confidenceScore, aiReasoning } = req.body;
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (segmentId !== undefined) updateData.segmentId = segmentId;
+    if (channel !== undefined) updateData.channel = channel;
+    if (messageTemplate !== undefined) updateData.messageTemplate = messageTemplate;
+    if (confidenceScore !== undefined) updateData.confidenceScore = confidenceScore;
+    if (aiReasoning !== undefined) updateData.aiReasoning = aiReasoning;
+
+    const proposal = await AgentProposal.findByIdAndUpdate(req.params.id, updateData, { new: true }).populate('segmentId', 'name');
+    if (!proposal) return res.status(404).json({ error: 'Not found' });
+    res.json({ proposal });
+  } catch (err) { next(err); }
+});
+
 router.patch('/:id/reject', async (req, res, next) => {
   try {
     const proposal = await AgentProposal.findByIdAndUpdate(req.params.id, { status: 'rejected' });
