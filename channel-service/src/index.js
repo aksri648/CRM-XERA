@@ -71,4 +71,5 @@ app.get('/stats', (req, res) => {
   });
 });
 
-app.listen(8002, () => console.log('Channel service running on :8002'));
+const PORT = process.env.PORT || 8002;
+app.listen(PORT, () => console.log(`Channel service running on :${PORT}`));
