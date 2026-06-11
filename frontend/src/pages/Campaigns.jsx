@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Megaphone, Send, CheckCircle, Eye, MousePointerClick, TrendingUp, DollarSign } from 'lucide-react';
+import { Plus, Megaphone, Send, CheckCircle, Eye, MousePointerClick, TrendingUp, DollarSign, Trash2 } from 'lucide-react';
 import api from '../lib/api';
 import { formatNumber, formatCurrency, relativeTime } from '../lib/utils';
 import { Button } from 'src/components/ui/button';
@@ -25,6 +25,7 @@ export default function Campaigns() {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [campaignStats, setCampaignStats] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     fetchCampaigns();
@@ -61,6 +62,14 @@ export default function Campaigns() {
       await api.post(`/api/campaigns/${id}/launch`);
       const campaignRes = await api.get(`/api/campaigns/${id}`);
       setSelectedCampaign(campaignRes.data.campaign || campaignRes.data);
+      fetchCampaigns();
+    } catch (e) {}
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/api/campaigns/${id}`);
+      setDeleteConfirm(null);
       fetchCampaigns();
     } catch (e) {}
   };
@@ -104,9 +113,16 @@ export default function Campaigns() {
                     <h3 className="font-semibold text-gray-900">{c.createdBy === 'agent' ? 'AI: ' : ''}{c.name}</h3>
                     <Badge className={`${statusBadges[c.status] || ''} border-0`}>{c.status}</Badge>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <Badge className={`${channelBadges[c.channel] || 'bg-gray-100 text-gray-700'} border-0`}>{c.channel}</Badge>
                     <Badge className="bg-gray-100 text-gray-700 border-0">{c.segmentId?.name || 'Segment'}</Badge>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirm(c); }}
+                      className="p-1.5 hover:bg-red-50 rounded-md transition-colors"
+                      title="Delete campaign"
+                    >
+                      <Trash2 size={16} className="text-gray-400 hover:text-red-500" />
+                    </button>
                   </div>
                 </div>
                 <div className="flex gap-6 mt-3 text-sm">
@@ -212,6 +228,21 @@ export default function Campaigns() {
                 </div>
               </>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!deleteConfirm} onOpenChange={(v) => !v && setDeleteConfirm(null)}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Delete Campaign</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 mt-4">
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button onClick={() => handleDelete(deleteConfirm?._id)} className="bg-red-500 hover:bg-red-600 text-white">Delete</Button>
+            </div>
           </DialogContent>
         </Dialog>
       </Dialog>
