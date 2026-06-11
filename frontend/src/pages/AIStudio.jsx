@@ -1,16 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, Send, Bot, User } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from "src/components/ui/button";
 import { Input } from "src/components/ui/input";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "src/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "src/components/ui/select";
+import { Textarea } from "src/components/ui/textarea";
 import { useSSE } from '../hooks/useSSE';
 import AgentResponseRenderer from '../components/AgentResponseRenderer';
+import api from '../lib/api';
 
 const suggestionPills = [
   'Active Buyers', 'At risk of losing buyers', 'VIP', 'New Buyers', 'Value Buyers',
 ];
 
+const EMPTY_FORM = { name: '', segmentId: '', channel: 'whatsapp', messageTemplate: '' };
+
 export default function AIStudio() {
+  const navigate = useNavigate();
   const { getToken } = useAuth();
   const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState([]);
@@ -18,6 +27,14 @@ export default function AIStudio() {
   const [hasStarted, setHasStarted] = useState(false);
   const { events, isStreaming, startStream, clearEvents } = useSSE();
   const chatEndRef = useRef(null);
+
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [campaignForm, setCampaignForm] = useState(EMPTY_FORM);
+  const [segments, setSegments] = useState([]);
+
+  useEffect(() => {
+    api.get('/api/segments').then(r => setSegments(r.data.segments || r.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,6 +85,66 @@ export default function AIStudio() {
       }
     }
   }, [events]);
+
+  const handleLaunch = async (details) => {
+    const title = details?.['Campaign Title'] || details?.campaign_title || 'AI Campaign';
+    const targetAudience = details?.['Target Audience'] || details?.target_audience || '';
+    const description = details?.['Description'] || details?.description || '';
+    const productCategory = details?.['ProductCategory'] || details?.product_category || '';
+    try {
+      const res = await api.post('/api/campaigns', {
+        name: title,
+        segmentId: null,
+        channel: 'whatsapp',
+        messageTemplate: description,
+        createdBy: 'agent',
+        status: 'draft',
+      });
+      const campaignId = res.data.campaign?._id || res.data?._id;
+      toast.success('Campaign created! Add segment and message before launching.');
+      setShowCampaignModal(false);
+      setCampaignForm(EMPTY_FORM);
+      navigate('/campaigns');
+    } catch (err) {
+      toast.error('Failed to create campaign: ' + (err?.response?.data?.error || err?.message));
+    }
+  };
+
+  const handleEdit = (details) => {
+    const title = details?.['Campaign Title'] || details?.campaign_title || '';
+    const targetAudience = details?.['Target Audience'] || details?.target_audience || '';
+    const description = details?.['Description'] || details?.description || '';
+    const productCategory = details?.['ProductCategory'] || details?.product_category || '';
+    setCampaignForm({
+      name: title,
+      segmentId: '',
+      channel: 'whatsapp',
+      messageTemplate: `Audience: ${targetAudience}\nCategory: ${productCategory}\n\n${description}`,
+    });
+    setShowCampaignModal(true);
+  };
+
+  const handleCampaignSubmit = async (launchNow) => {
+    if (!campaignForm.name.trim()) {
+      toast.error('Campaign name is required');
+      return;
+    }
+    try {
+      const res = await api.post('/api/campaigns', { ...campaignForm, createdBy: 'agent' });
+      const campaignId = res.data.campaign?._id || res.data?._id;
+      if (launchNow && campaignId) {
+        await api.post(`/api/campaigns/${campaignId}/launch`);
+        toast.success('Campaign launched!');
+      } else {
+        toast.success('Campaign saved as draft');
+      }
+      setShowCampaignModal(false);
+      setCampaignForm(EMPTY_FORM);
+      navigate('/campaigns');
+    } catch (err) {
+      toast.error('Failed to save campaign: ' + (err?.response?.data?.error || err?.message));
+    }
+  };
 
   if (!hasStarted) {
     return (
@@ -126,7 +203,11 @@ export default function AIStudio() {
                 </div>
                 {msg.structuredEvents && msg.structuredEvents.length > 0 && (
                   <div className="mt-2">
-                    <AgentResponseRenderer events={msg.structuredEvents} />
+                    <AgentResponseRenderer
+                      events={msg.structuredEvents}
+                      onLaunch={handleLaunch}
+                      onEdit={handleEdit}
+                    />
                   </div>
                 )}
               </div>
@@ -175,6 +256,63 @@ export default function AIStudio() {
           </Button>
         </div>
       </div>
+
+      <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Edit Campaign</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              value={campaignForm.name}
+              onChange={e => setCampaignForm({ ...campaignForm, name: e.target.value })}
+              placeholder="Campaign Name"
+            />
+            <Select
+              value={campaignForm.segmentId || undefined}
+              onValueChange={val => setCampaignForm({ ...campaignForm, segmentId: val })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Segment" />
+              </SelectTrigger>
+              <SelectContent>
+                {segments.map(s => (
+                  <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              {['whatsapp', 'sms', 'email', 'rcs'].map(ch => (
+                <button
+                  key={ch}
+                  onClick={() => setCampaignForm({ ...campaignForm, channel: ch })}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                    campaignForm.channel === ch
+                      ? 'bg-[#0fd4b4] text-white'
+                      : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {ch}
+                </button>
+              ))}
+            </div>
+            <Textarea
+              value={campaignForm.messageTemplate}
+              onChange={e => setCampaignForm({ ...campaignForm, messageTemplate: e.target.value })}
+              placeholder="Message template... Use {name} for personalization"
+              rows={4}
+              className="resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={() => setShowCampaignModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleCampaignSubmit(false)}>Save as Draft</Button>
+            <Button onClick={() => handleCampaignSubmit(true)} className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white">
+              Launch Now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

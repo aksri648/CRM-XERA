@@ -47,7 +47,7 @@ function MessageProposalCard({ data }) {
   );
 }
 
-function CampaignDetailsCard({ data }) {
+function CampaignDetailsCard({ data, onLaunch, onEdit }) {
   const details = data?.CampaignDetails || data?.campaign_details || data || {};
   const title = details['Campaign Title'] || details.campaign_title || 'Untitled Campaign';
   const audience = details['Target Audience'] || details.target_audience || '—';
@@ -96,10 +96,16 @@ function CampaignDetailsCard({ data }) {
           </div>
         )}
         <div className="flex gap-2 mt-4">
-          <button className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors">
+          <button
+            onClick={() => onLaunch?.(details)}
+            className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+          >
             Launch Campaign
           </button>
-          <button className="border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 rounded-lg px-4 py-2 text-sm transition-colors">
+          <button
+            onClick={() => onEdit?.(details)}
+            className="border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 rounded-lg px-4 py-2 text-sm transition-colors"
+          >
             Edit
           </button>
         </div>
@@ -221,7 +227,7 @@ function ConfirmationCard({ data, onConfirm, onReject }) {
   );
 }
 
-export default function AgentResponseRenderer({ events = [] }) {
+export default function AgentResponseRenderer({ events = [], onLaunch, onEdit }) {
   if (!events || events.length === 0) return null;
   return (
     <div className="space-y-2">
@@ -231,7 +237,7 @@ export default function AgentResponseRenderer({ events = [] }) {
           case 'segment_proposal': return <SegmentProposalCard key={i} data={event.data} />;
           case 'message_proposal': return <MessageProposalCard key={i} data={event.data} />;
           case 'campaign_proposal': return <CampaignProposalCard key={i} data={event.data} />;
-          case 'campaign_details': return <CampaignDetailsCard key={i} data={event.data} />;
+          case 'campaign_details': return <CampaignDetailsCard key={i} data={event.data} onLaunch={onLaunch} onEdit={onEdit} />;
           case 'insight_report': return <InsightReportCard key={i} data={event.data} />;
           case 'opportunity_list': return <OpportunityListCard key={i} data={event.data} />;
           case 'error': return <ErrorCard key={i} message={event.message} />;
