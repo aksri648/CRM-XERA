@@ -12,6 +12,7 @@ export default function Opportunities() {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
 
   useEffect(() => {
     api.get('/api/opportunities?status=active').then(r => { setOpportunities(r.data.opportunities || r.data); setLoading(false); }).catch(() => setLoading(false));
@@ -19,11 +20,19 @@ export default function Opportunities() {
 
   const handleScan = async () => {
     setScanning(true);
+    setScanError('');
     try {
       const res = await api.post('/api/opportunities/scan');
       const newOpps = res.data.opportunities || [];
-      setOpportunities(prev => [...newOpps, ...prev]);
-    } catch (e) {}
+      if (newOpps.length === 0) {
+        setScanError('Scan completed but no opportunities were returned. Try again or check agent service logs.');
+      } else {
+        setOpportunities(prev => [...newOpps, ...prev]);
+      }
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e?.response?.data?.error || e?.message || 'Unknown error';
+      setScanError(`Scan failed: ${detail}`);
+    }
     setScanning(false);
   };
 
@@ -76,6 +85,13 @@ export default function Opportunities() {
       </div>
 
       <div className="flex flex-col gap-4">
+        {scanError && (
+          <Card>
+            <CardContent className="p-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+              {scanError}
+            </CardContent>
+          </Card>
+        )}
         {opportunities.length === 0 ? (
           <Card>
             <CardContent className="text-center py-20 text-gray-500">

@@ -31,20 +31,24 @@ router.post('/scan', async (req, res, next) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ context }),
     });
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(502).json({ error: 'Agent service error', detail: text });
+    }
     const result = await response.json();
     const opps = result.opportunities || [];
-    let created = 0;
+    const created = [];
     for (const opp of opps) {
-      await Opportunity.create({
+      const doc = await Opportunity.create({
         title: opp.title,
         description: opp.description,
         audienceDescription: opp.audience_description,
         expectedRevenue: opp.expected_revenue_inr,
         aiReasoning: opp.ai_reasoning,
       });
-      created++;
+      created.push(doc);
     }
-    res.json({ created });
+    res.json({ opportunities: created, count: created.length });
   } catch (err) { next(err); }
 });
 
