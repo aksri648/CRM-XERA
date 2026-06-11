@@ -19,7 +19,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     if (req.body.name) {
-      const existing = await Segment.findOne({ name: req.body.name });
+      const existing = await Segment.findOne({ name: { $regex: `^${req.body.name}$`, $options: 'i' } });
       if (existing) return res.status(200).json({ segment: existing });
     }
     const segment = await Segment.create(req.body);
