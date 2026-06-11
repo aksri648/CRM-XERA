@@ -8,7 +8,7 @@ router.use(requireAuth());
 
 router.get('/', async (req, res, next) => {
   try {
-    const { search, tag, page = 1, limit = 12 } = req.query;
+    const { search, tag, page = 1, limit = 12, sort } = req.query;
     const query = {};
     if (search) {
       query.$or = [
@@ -19,8 +19,10 @@ router.get('/', async (req, res, next) => {
     }
     if (tag) query.tags = { $in: [tag] };
     const total = await Customer.countDocuments(query);
+    const sortMap = { ltv: { ltv: -1 }, createdAt: { createdAt: -1 }, lastOrderAt: { lastOrderAt: -1 } };
+    const sortObj = sortMap[sort] || { createdAt: -1 };
     const customers = await Customer.find(query)
-      .sort({ createdAt: -1 })
+      .sort(sortObj)
       .skip((page - 1) * limit)
       .limit(Number(limit));
     res.json({ customers, total, page: Number(page), pages: Math.ceil(total / limit) });
