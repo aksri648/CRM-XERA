@@ -28,6 +28,7 @@ services:
       CUSTOM_LLM_BASE_URL: ${CUSTOM_LLM_BASE_URL}
       CUSTOM_LLM_API_KEY: ${CUSTOM_LLM_API_KEY}
       CUSTOM_LLM_MODEL: ${CUSTOM_LLM_MODEL}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
 
   channel-service:
     build: ./channel-service

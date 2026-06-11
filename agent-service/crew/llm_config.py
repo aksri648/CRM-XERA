@@ -18,5 +18,5 @@ def get_llm():
         base_url=base_url,
         api_key=api_key,
         temperature=0.3,
-        max_tokens=2000,
+        max_tokens=4000,
     )

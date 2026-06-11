@@ -1,7 +1,7 @@
 import json
 import asyncio
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -60,7 +60,7 @@ async def scan_opportunities(body: OpportunityScanRequest):
         result = await asyncio.to_thread(crew.run, body.context)
         return result
     except Exception as e:
-        return {"error": str(e), "opportunities": []}
+        return JSONResponse(status_code=500, content={"error": str(e), "opportunities": []})
 
 
 @app.post("/crew/insights")

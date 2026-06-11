@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { requireAuth } from '@clerk/express';
 import Opportunity from '../models/Opportunity.js';
 import AgentProposal from '../models/AgentProposal.js';
+import Customer from '../models/Customer.js';
+import Campaign from '../models/Campaign.js';
+import Order from '../models/Order.js';
 
 const router = Router();
 router.use(requireAuth());
@@ -25,12 +28,59 @@ router.get('/count', async (req, res, next) => {
 router.post('/scan', async (req, res, next) => {
   try {
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
-    const context = { message: 'Scan for new marketing opportunities' };
+
+    const totalCustomers = await Customer.countDocuments();
+    const customersByCity = await Customer.aggregate([
+      { $group: { _id: '$city', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ]);
+    const ltvSegments = await Customer.aggregate([
+      {
+        $bucket: {
+          groupBy: '$ltv',
+          boundaries: [0, 1000, 5000, 10000, 50000, 100000],
+          default: 'unknown',
+          output: { count: { $sum: 1 } },
+        },
+      },
+    ]);
+    const totalOrders = await Order.countDocuments();
+    const topCampaigns = await Campaign.find({ status: 'completed' })
+      .sort({ 'stats.revenue': -1 })
+      .limit(5)
+      .lean();
+    const lapsedCount = await Customer.countDocuments({
+      lastOrderAt: { $lt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) },
+      ltv: { $gt: 0 },
+    });
+
+    const context = {
+      total_customers: totalCustomers,
+      customers_by_city: customersByCity.reduce((acc, c) => ({ ...acc, [c._id]: c.count }), {}),
+      ltv_segments: ltvSegments.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {}),
+      total_orders: totalOrders,
+      top_campaigns: topCampaigns.map(c => ({
+        name: c.name,
+        channel: c.channel,
+        revenue: c.stats?.revenue || 0,
+        sent: c.stats?.sent || 0,
+      })),
+      lapsed_high_value_customers: lapsedCount,
+      scan_request: 'Find top marketing opportunities, trending marketing catchphrases, and campaign ideas',
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+
     const response = await fetch(`${agentServiceUrl}/crew/opportunities`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ context }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
+
     if (!response.ok) {
       const text = await response.text();
       return res.status(502).json({ error: 'Agent service error', detail: text });
@@ -49,7 +99,12 @@ router.post('/scan', async (req, res, next) => {
       created.push(doc);
     }
     res.json({ opportunities: created, count: created.length });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: 'Agent service timed out', opportunities: [] });
+    }
+    next(err);
+  }
 });
 
 router.patch('/:id/dismiss', async (req, res, next) => {
