@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo:7
+    ports: ["27017:27017"]
+    volumes: [mongodb_data:/data/db]
+    environment:
+      MONGO_INITDB_DATABASE: xenocrm
+
+  backend:
+    build: ./backend
+    ports: ["8000:8000"]
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/xenocrm
+      CHANNEL_SERVICE_URL: http://channel-service:8002
+      AGENT_SERVICE_URL: http://agent-service:8001
+      RECEIPT_CALLBACK_URL: http://backend:8000/api/receipts/callback
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      FRONTEND_URL: http://localhost:5173
+      NODE_ENV: production
+    depends_on: [mongodb]
+
+  agent-service:
+    build: ./agent-service
+    ports: ["8001:8001"]
+    environment:
+      CUSTOM_LLM_BASE_URL: ${CUSTOM_LLM_BASE_URL}
+      CUSTOM_LLM_API_KEY: ${CUSTOM_LLM_API_KEY}
+      CUSTOM_LLM_MODEL: ${CUSTOM_LLM_MODEL}
+
+  channel-service:
+    build: ./channel-service
+    ports: ["8002:8002"]
+
+  frontend:
+    build: ./frontend
+    ports: ["5173:80"]
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+
+volumes:
+  mongodb_data:
