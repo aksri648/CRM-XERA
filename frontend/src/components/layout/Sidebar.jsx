@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, FlaskConical, BarChart3, Activity, Cog, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog, LogOut, Menu } from 'lucide-react';
 import api from '../../lib/api';
 
 const navGroups = [
@@ -25,7 +25,6 @@ const navGroups = [
     label: 'ENGAGE',
     items: [
       { label: 'Campaigns', icon: Megaphone, path: '/campaigns' },
-      { label: 'A/B Tests', icon: FlaskConical, path: '/ab-tests' },
     ],
   },
   {
