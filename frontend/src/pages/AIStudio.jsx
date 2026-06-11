@@ -16,7 +16,13 @@ const suggestionPills = [
   'Active Buyers', 'At risk of losing buyers', 'VIP', 'New Buyers', 'Value Buyers',
 ];
 
-const EMPTY_FORM = { name: '', segmentId: '', channel: 'whatsapp', messageTemplate: '' };
+const EMPTY_FORM = { name: '', segmentId: '', channel: 'whatsapp', messageTemplate: '', category: '' };
+
+const PRODUCT_CATEGORIES = [
+  'Fashion', 'Beauty & Personal Care', 'Electronics', 'Home & Kitchen',
+  'Health & Wellness', 'Sports & Fitness', 'Books & Stationery',
+  'Toys & Games', 'Groceries', 'Jewelry & Accessories',
+];
 
 const DEFAULT_SEGMENTS = [
   { name: 'Active Buyers', createdBy: 'agent', filterRules: [{ field: 'totalOrders', operator: 'gte', value: 3 }], logic: 'AND' },
@@ -123,14 +129,14 @@ export default function AIStudio() {
 
   const handleEdit = (details) => {
     const title = details?.['Campaign Title'] || details?.campaign_title || '';
-    const targetAudience = details?.['Target Audience'] || details?.target_audience || '';
     const description = details?.['Description'] || details?.description || '';
     const productCategory = details?.['ProductCategory'] || details?.product_category || '';
     setCampaignForm({
       name: title,
       segmentId: '',
       channel: 'whatsapp',
-      messageTemplate: `Audience: ${targetAudience}\nCategory: ${productCategory}\n\n${description}`,
+      messageTemplate: description,
+      category: productCategory,
     });
     setShowCampaignModal(true);
   };
@@ -310,6 +316,20 @@ export default function AIStudio() {
                 </button>
               ))}
             </div>
+            <select
+              value={campaignForm.category || ''}
+              onChange={e => setCampaignForm({ ...campaignForm, category: e.target.value })}
+              className={cn(
+                "w-full h-10 px-3 rounded-md border border-slate-200 bg-white text-sm",
+                "focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2",
+                !campaignForm.category && "text-slate-500"
+              )}
+            >
+              <option value="">Select Product Category</option>
+              {PRODUCT_CATEGORIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
             <Textarea
               value={campaignForm.messageTemplate}
               onChange={e => setCampaignForm({ ...campaignForm, messageTemplate: e.target.value })}
