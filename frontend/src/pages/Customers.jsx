@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 import api from '../lib/api';
 import { formatCurrency, formatNumber, relativeTime, getAvatarColor, getInitials } from '../lib/utils';
 import { Button } from 'src/components/ui/button';
@@ -11,8 +13,59 @@ import { Avatar, AvatarFallback } from 'src/components/ui/avatar';
 
 const tags = ['All', 'Active', 'VIP', 'At Risk', 'New'];
 
+const HEADER_ALIASES = {
+  name: ['name', 'full name', 'fullname', 'customer name', 'customer'],
+  email: ['email', 'email address', 'e-mail', 'mail'],
+  phone: ['phone', 'phone number', 'mobile', 'contact', 'contact number'],
+  city: ['city', 'location'],
+  gender: ['gender', 'sex'],
+  age: ['age'],
+  tags: ['tags', 'tag'],
+  ltv: ['ltv', 'lifetime value', 'lifetimevalue'],
+  totalOrders: ['total orders', 'totalorders', 'orders', 'order count'],
+  lastOrderAt: ['last order at', 'last order', 'lastorderat', 'last order date'],
+};
+
+function normalizeRow(row) {
+  const lowered = {};
+  for (const k of Object.keys(row)) lowered[String(k).trim().toLowerCase()] = row[k];
+  const pick = (field) => {
+    for (const alias of HEADER_ALIASES[field]) {
+      if (lowered[alias] !== undefined && lowered[alias] !== null && lowered[alias] !== '') return lowered[alias];
+    }
+    return undefined;
+  };
+  const out = {};
+  const name = pick('name');
+  const email = pick('email');
+  if (!name || !email) return null;
+  out.name = String(name).trim();
+  out.email = String(email).trim().toLowerCase();
+  const phone = pick('phone');         if (phone !== undefined) out.phone = String(phone).trim();
+  const city = pick('city');           if (city !== undefined) out.city = String(city).trim();
+  const gender = pick('gender');
+  if (gender !== undefined) {
+    const g = String(gender).trim().toLowerCase();
+    if (['male', 'female', 'other'].includes(g)) out.gender = g;
+  }
+  const age = pick('age');             if (age !== undefined && !Number.isNaN(Number(age))) out.age = Number(age);
+  const ltv = pick('ltv');             if (ltv !== undefined && !Number.isNaN(Number(ltv))) out.ltv = Number(ltv);
+  const orders = pick('totalOrders');  if (orders !== undefined && !Number.isNaN(Number(orders))) out.totalOrders = Number(orders);
+  const lastOrder = pick('lastOrderAt');
+  if (lastOrder !== undefined) {
+    const d = new Date(lastOrder);
+    if (!Number.isNaN(d.getTime())) out.lastOrderAt = d.toISOString();
+  }
+  const tagVal = pick('tags');
+  if (tagVal !== undefined) {
+    out.tags = String(tagVal).split(',').map(t => t.trim()).filter(Boolean);
+  }
+  return out;
+}
+
 export default function Customers() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [customers, setCustomers] = useState([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
@@ -20,6 +73,7 @@ export default function Customers() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -38,6 +92,53 @@ export default function Customers() {
     return () => clearTimeout(timer);
   }, [fetchCustomers]);
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      if (!sheetName) throw new Error('File contains no sheets');
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      if (rows.length === 0) throw new Error('File is empty');
+      if (rows.length > 10000) throw new Error('Maximum 10,000 rows per import');
+
+      const customersPayload = [];
+      let invalidRows = 0;
+      for (const row of rows) {
+        const normalized = normalizeRow(row);
+        if (normalized) customersPayload.push(normalized);
+        else invalidRows++;
+      }
+      if (customersPayload.length === 0) {
+        toast.error('No valid rows found. Each row needs at least "name" and "email" columns.');
+        setImporting(false);
+        return;
+      }
+
+      const res = await api.post('/api/customers/bulk', { customers: customersPayload });
+      const { inserted = 0, skipped = 0, errors = [] } = res.data;
+      const parts = [`${inserted} added`];
+      if (skipped) parts.push(`${skipped} duplicates skipped`);
+      if (invalidRows) parts.push(`${invalidRows} rows missing name/email`);
+      if (errors.length) parts.push(`${errors.length} errors`);
+      toast.success(`Import complete: ${parts.join(', ')}`);
+      setPage(1);
+      fetchCustomers();
+    } catch (err) {
+      const detail = err?.response?.data?.error || err?.message || 'Unknown error';
+      toast.error(`Import failed: ${detail}`);
+    }
+    setImporting(false);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -45,9 +146,17 @@ export default function Customers() {
           <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
           <p className="text-sm text-gray-500 mt-1">{formatNumber(total)} total customers</p>
         </div>
-        <Button variant="outline">
-          <Upload size={16} /> Import
+        <Button variant="outline" onClick={handleImportClick} disabled={importing}>
+          <Upload size={16} className={importing ? 'animate-pulse' : ''} />
+          {importing ? 'Importing...' : 'Import'}
         </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          onChange={handleFileChange}
+          className="hidden"
+        />
       </div>
 
       <div className="flex items-center gap-4 mb-4">
