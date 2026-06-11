@@ -240,36 +240,87 @@ export default function AICommandCentre({ onClose }) {
     }
   };
 
+  // Process all buffered events whenever events array changes
   useEffect(() => {
     if (events.length === 0) return;
-    const lastEvent = events[events.length - 1];
 
-    if (lastEvent.type === 'command_result') {
-      handleCommandResult(lastEvent.data);
-      // Don't add as a regular message, the handler above updates the last message
-      return;
-    }
+    // Process all new events in order
+    for (const event of events) {
+      if (event.type === 'done') {
+        // useSSE resets isStreaming internally on 'done' event
+        break;
+      }
 
-    if (lastEvent.type === 'text') {
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === 'assistant') {
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...last, content: lastEvent.content };
-          return updated;
+      if (event.type === 'error') {
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === 'assistant') {
+            const updated = [...prev];
+            updated[updated.length - 1] = { ...last, content: `Error: ${event.message}` };
+            return updated;
+          }
+          return [...prev, { role: 'assistant', content: `Error: ${event.message}`, fetchData: null, structuredEvents: [] }];
+        });
+        break;
+      }
+
+      if (event.type === 'text') {
+        setMessages(prev => {
+          // Append text to last assistant message, or create new one
+          const last = prev[prev.length - 1];
+          if (last?.role === 'assistant') {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...last,
+              content: last.content ? `${last.content} ${event.content}` : event.content,
+            };
+            return updated;
+          }
+          return [...prev, { role: 'assistant', content: event.content, fetchData: null, structuredEvents: [] }];
+        });
+      }
+
+      if (event.type === 'command_result') {
+        // Fire and forget - update the last assistant message's fetchData
+        const { action, params } = event.data || {};
+        const safeUpdate = (updater) => setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role !== 'assistant') return prev;
+          return [...prev.slice(0, -1), updater(last)];
+        });
+
+        const applyFetch = (fetched) => {
+          safeUpdate(last => ({ ...last, fetchData: { ...last.fetchData, ...fetched } }));
+        };
+
+        if (action === 'fetch_customers') {
+          api.get('/api/customers', { params: { ...params, limit: params.limit || 10 } })
+            .then(r => applyFetch({ customers: r.data.customers || r.data }))
+            .catch(() => applyFetch({ customers: [] }));
+        } else if (action === 'fetch_campaigns') {
+          api.get('/api/campaigns', { params: { ...params, sort: params.sort || '-createdAt' } })
+            .then(r => applyFetch({ campaigns: r.data.campaigns || r.data }))
+            .catch(() => applyFetch({ campaigns: [] }));
+        } else if (action === 'fetch_segments') {
+          api.get('/api/segments')
+            .then(r => applyFetch({ segments: r.data.segments || r.data }))
+            .catch(() => applyFetch({ segments: [] }));
+        } else if (action === 'fetch_pipeline_status') {
+          api.get('/api/pipeline/status')
+            .then(r => applyFetch({ pipeline: r.data }))
+            .catch(() => applyFetch({ pipeline: {} }));
+        } else if (action === 'fetch_system_status') {
+          api.get('/api/agent/system-status')
+            .then(r => applyFetch({ pipeline: r.data }))
+            .catch(() => applyFetch({ pipeline: {} }));
+        } else if (action === 'fetch_opportunities') {
+          api.get('/api/opportunities', { params: { status: 'active', limit: params.limit || 5 } })
+            .then(r => applyFetch({ opportunities: r.data.opportunities || r.data }))
+            .catch(() => applyFetch({ opportunities: [] }));
+        } else if (action === 'generate_campaign') {
+          applyFetch({ campaign_details: params });
         }
-        return [...prev, { role: 'assistant', content: lastEvent.content, fetchData: null, structuredEvents: [] }];
-      });
-    } else if (lastEvent.type !== 'done') {
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === 'assistant') {
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...last, structuredEvents: [...(last.structuredEvents || []), lastEvent] };
-          return updated;
-        }
-        return [...prev, { role: 'assistant', content: '', fetchData: null, structuredEvents: [lastEvent] }];
-      });
+      }
     }
   }, [events]);
 
