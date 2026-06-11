@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Megaphone, Send, CheckCircle, Eye, MousePointerClick, TrendingUp, DollarSign, Trash2 } from 'lucide-react';
+import { Plus, Megaphone, Send, CheckCircle, Eye, MousePointerClick, TrendingUp, DollarSign, Trash2, StopCircle } from 'lucide-react';
 import api from '../lib/api';
 import { formatNumber, formatCurrency, relativeTime } from '../lib/utils';
 import { Button } from 'src/components/ui/button';
@@ -13,7 +13,7 @@ import { Textarea } from 'src/components/ui/textarea';
 import { Skeleton } from 'src/components/ui/skeleton';
 
 const channelBadges = { whatsapp: 'bg-green-100 text-green-700', email: 'bg-blue-100 text-blue-700', sms: 'bg-yellow-100 text-yellow-700', rcs: 'bg-purple-100 text-purple-700' };
-const statusBadges = { draft: 'bg-gray-100 text-gray-600', running: 'bg-blue-100 text-blue-600 animate-pulse', completed: 'bg-green-100 text-green-700' };
+const statusBadges = { draft: 'bg-gray-100 text-gray-600', running: 'bg-blue-100 text-blue-600 animate-pulse', stopped: 'bg-orange-100 text-orange-600', completed: 'bg-green-100 text-green-700' };
 
 export default function Campaigns() {
   const navigate = useNavigate();
@@ -60,6 +60,15 @@ export default function Campaigns() {
   const handleLaunch = async (id) => {
     try {
       await api.post(`/api/campaigns/${id}/launch`);
+      const campaignRes = await api.get(`/api/campaigns/${id}`);
+      setSelectedCampaign(campaignRes.data.campaign || campaignRes.data);
+      fetchCampaigns();
+    } catch (e) {}
+  };
+
+  const handleStop = async (id) => {
+    try {
+      await api.patch(`/api/campaigns/${id}/stop`);
       const campaignRes = await api.get(`/api/campaigns/${id}`);
       setSelectedCampaign(campaignRes.data.campaign || campaignRes.data);
       fetchCampaigns();
@@ -223,6 +232,11 @@ export default function Campaigns() {
                   {selectedCampaign.status === 'draft' && (
                     <Button onClick={() => handleLaunch(selectedCampaign._id)} className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white">
                       Launch Campaign
+                    </Button>
+                  )}
+                  {selectedCampaign.status === 'running' && (
+                    <Button onClick={() => handleStop(selectedCampaign._id)} className="bg-orange-500 hover:bg-orange-600 text-white">
+                      <StopCircle size={16} /> Stop Campaign
                     </Button>
                   )}
                 </div>

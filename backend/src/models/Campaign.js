@@ -5,7 +5,7 @@ const CampaignSchema = new mongoose.Schema({
   segmentId:       { type: mongoose.Schema.Types.ObjectId, ref: 'Segment' },
   channel:         { type: String, enum: ['whatsapp', 'sms', 'email', 'rcs'], required: true },
   messageTemplate: { type: String, required: true },
-  status:          { type: String, enum: ['draft', 'running', 'completed'], default: 'draft' },
+  status:          { type: String, enum: ['draft', 'running', 'stopped', 'completed'], default: 'draft' },
   createdBy:       { type: String, enum: ['human', 'agent'], default: 'human' },
   abTestId:        { type: mongoose.Schema.Types.ObjectId, ref: 'ABTest', default: null },
   stats: {

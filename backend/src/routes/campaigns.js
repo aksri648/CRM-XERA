@@ -86,10 +86,24 @@ router.get('/:id/communications', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.patch('/:id/stop', async (req, res, next) => {
+  try {
+    const campaign = await Campaign.findById(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Not found' });
+    if (campaign.status !== 'running') return res.status(400).json({ error: 'Only running campaigns can be stopped' });
+    campaign.status = 'stopped';
+    campaign.completedAt = new Date();
+    await campaign.save();
+    res.json({ campaign });
+  } catch (err) { next(err); }
+});
+
 router.delete('/:id', async (req, res, next) => {
   try {
     const campaign = await Campaign.findById(req.params.id);
-    if (!campaign || campaign.status !== 'draft') return res.status(400).json({ error: 'Only drafts can be deleted' });
+    if (!campaign || (campaign.status !== 'draft' && campaign.status !== 'stopped')) {
+      return res.status(400).json({ error: 'Only draft or stopped campaigns can be deleted' });
+    }
     await Campaign.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch (err) { next(err); }
