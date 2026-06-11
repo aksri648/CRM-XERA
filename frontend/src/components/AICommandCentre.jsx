@@ -1,21 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Bot, X, Send, Users, Megaphone, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bot, X, Send, Users, Megaphone, TrendingUp, CheckCircle, AlertCircle, MousePointerClick, Eye, DollarSign } from 'lucide-react';
 import { useSSE } from '../hooks/useSSE';
-import AgentResponseRenderer from './AgentResponseRenderer';
 import api from '../lib/api';
 import { formatNumber, formatCurrency } from '../lib/utils';
 
 function SystemStatusCard({ data }) {
   return (
-    <div className="space-y-3 mt-2">
+    <div className="space-y-2 mt-2">
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: 'Worker', value: data?.channel_service_health === 'ok' ? 'Healthy' : 'Degraded', ok: data?.channel_service_health === 'ok' },
           { label: 'Queue', value: `${formatNumber(data?.queue_pending || 0)} pending`, ok: (data?.queue_pending || 0) < 50 },
-          { label: 'Active Campaigns', value: formatNumber(data?.active_campaigns || 0), ok: true },
+          { label: 'Active Runs', value: formatNumber(data?.active_campaigns || 0), ok: true },
         ].map(item => (
-          <div key={item.label} className="bg-white rounded-lg p-2 text-center border border-gray-100">
+          <div key={item.label} className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
             <p className="text-[10px] text-gray-500 uppercase">{item.label}</p>
             <div className="flex items-center justify-center gap-1 mt-1">
               {item.ok ? <CheckCircle size={12} className="text-green-500" /> : <AlertCircle size={12} className="text-red-500" />}
@@ -28,43 +27,19 @@ function SystemStatusCard({ data }) {
   );
 }
 
-function CountsCard({ data }) {
-  return (
-    <div className="grid grid-cols-2 gap-2 mt-2">
-      {[
-        { label: 'Total Customers', value: formatNumber(data?.customers || 0), icon: Users },
-        { label: 'Total Campaigns', value: formatNumber(data?.campaigns || 0), icon: Megaphone },
-        { label: 'Active Campaigns', value: formatNumber(data?.activeCampaigns || 0), icon: TrendingUp },
-        { label: 'Running Campaigns', value: formatNumber(data?.runningCampaigns || 0), icon: CheckCircle },
-      ].map(item => {
-        const Icon = item.icon;
-        return (
-          <div key={item.label} className="bg-white rounded-lg p-3 border border-gray-100 flex items-center gap-2">
-            <Icon size={16} className="text-[#0fd4b4]" />
-            <div>
-              <p className="text-[10px] text-gray-500 uppercase">{item.label}</p>
-              <p className="text-sm font-bold text-gray-900">{item.value}</p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function TopCustomersCard({ customers }) {
+function CustomersTableCard({ customers }) {
   if (!customers?.length) return null;
   return (
     <div className="space-y-1 mt-2">
       {customers.map(c => (
-        <div key={c._id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100">
+        <div key={c._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
           <div>
             <p className="text-sm font-medium text-gray-900">{c.name}</p>
             <p className="text-xs text-gray-500">{c.email}</p>
           </div>
           <div className="text-right">
             <p className="text-sm font-bold text-gray-900">{formatCurrency(c.ltv)}</p>
-            <p className="text-xs text-gray-500">{formatNumber(c.totalOrders)} orders</p>
+            <p className="text-xs text-gray-500">{formatNumber(c.totalOrders || 0)} orders</p>
           </div>
         </div>
       ))}
@@ -72,19 +47,88 @@ function TopCustomersCard({ customers }) {
   );
 }
 
-function RecentCampaignsCard({ campaigns }) {
+function CampaignsTableCard({ campaigns }) {
   if (!campaigns?.length) return null;
+  const statusColors = { draft: 'bg-gray-100 text-gray-600', running: 'bg-blue-100 text-blue-600', completed: 'bg-green-100 text-green-700' };
+  const channelColors = { whatsapp: 'bg-green-100 text-green-700', email: 'bg-blue-100 text-blue-700', sms: 'bg-yellow-100 text-yellow-700', rcs: 'bg-purple-100 text-purple-700' };
   return (
     <div className="space-y-1 mt-2">
       {campaigns.map(c => (
-        <div key={c._id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100">
+        <div key={c._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
           <div>
             <p className="text-sm font-medium text-gray-900">{c.name}</p>
-            <p className="text-xs text-gray-500">{c.channel} · {c.status}</p>
+            <div className="flex gap-1 mt-0.5">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border-0 ${channelColors[c.channel] || 'bg-gray-100 text-gray-600'}`}>{c.channel}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border-0 ${statusColors[c.status] || 'bg-gray-100 text-gray-600'}`}>{c.status}</span>
+            </div>
           </div>
-          <p className="text-xs text-gray-500">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}</p>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">Sent: {formatNumber(c.stats?.sent || 0)}</p>
+            <p className="text-xs text-gray-500">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}</p>
+          </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SegmentsTableCard({ segments }) {
+  if (!segments?.length) return null;
+  return (
+    <div className="space-y-1 mt-2">
+      {segments.map(s => (
+        <div key={s._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+          <div>
+            <p className="text-sm font-medium text-gray-900">{s.name}</p>
+            <p className="text-xs text-gray-500">{s.filterRules?.length || 0} filter rules · {s.logic}</p>
+          </div>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full border-0 ${s.createdBy === 'agent' ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'}`}>
+            {s.createdBy}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PipelineCard({ data }) {
+  if (!data) return null;
+  return (
+    <div className="grid grid-cols-2 gap-2 mt-2">
+      {Object.entries(data).map(([k, v]) => (
+        <div key={k} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+          <p className="text-[10px] text-gray-500 uppercase">{k.replace(/_/g, ' ')}</p>
+          <p className="text-sm font-bold text-gray-900">{String(v)}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CampaignPlanCard({ details }) {
+  const title = details?.['Campaign Title'] || details?.campaign_title || 'Untitled';
+  const audience = details?.['Target Audience'] || details?.target_audience || '—';
+  const description = details?.['Description'] || details?.description || '';
+  const category = details?.['ProductCategory'] || details?.product_category || '—';
+  const colors = {
+    'Active Buyers': 'bg-green-100 text-green-700',
+    'At risk of losing buyers': 'bg-red-100 text-red-700',
+    'VIP': 'bg-purple-100 text-purple-700',
+    'New Buyers': 'bg-blue-100 text-blue-700',
+    'Value Buyers': 'bg-amber-100 text-amber-700',
+  };
+  return (
+    <div className="border border-[#0fd4b4]/40 rounded-xl bg-teal-50/40 p-4 mt-2">
+      <div className="flex items-center gap-2 mb-2">
+        <Megaphone size={14} className="text-[#0fd4b4]" />
+        <span className="text-xs font-semibold text-[#0fd4b4] uppercase">Campaign Plan</span>
+      </div>
+      <h3 className="font-bold text-gray-900">{title}</h3>
+      <div className="flex flex-wrap gap-2 mt-2">
+        <span className={`text-xs px-2 py-1 rounded-full border-0 ${colors[audience] || 'bg-gray-100 text-gray-700'}`}>{audience}</span>
+        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 border-0">{category}</span>
+      </div>
+      {description && <p className="text-sm text-gray-700 mt-2">{description}</p>}
     </div>
   );
 }
@@ -97,6 +141,13 @@ export default function AICommandCentre({ onClose }) {
   const [sysStatus, setSysStatus] = useState(null);
   const { events, isStreaming, startStream } = useSSE();
   const chatEndRef = useRef(null);
+  const [suggestions] = useState([
+    'System status',
+    'Top customers by LTV',
+    'Recent campaigns',
+    'How many customers?',
+    'Create a campaign for VIP customers',
+  ]);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -111,125 +162,8 @@ export default function AICommandCentre({ onClose }) {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, events]);
 
-  // ─── Hardcoded response handlers ────────────────────────────────────────────
-
-  const handleAbout = async () => {
-    return "Xeno CRM is a D2C (Direct-to-Consumer) marketing automation platform built for brands to manage campaigns, customer segments, and AI-powered insights. You can use it to create multi-channel campaigns (WhatsApp, SMS, Email, RCS), discover customer opportunities, generate AI campaigns, and track performance — all in one place.";
-  };
-
-  const handleSystemStatus = async () => {
-    try {
-      const [pipelineRes, campaignRes] = await Promise.all([
-        api.get('/api/pipeline/status').catch(() => ({ data: {} })),
-        api.get('/api/agent/system-status').catch(() => ({ data: {} })),
-      ]);
-      const merged = {
-        channel_service_health: pipelineRes.data?.channel_service_health || 'unknown',
-        queue_pending: pipelineRes.data?.queue_pending || 0,
-        active_campaigns: campaignRes.data?.active_campaigns || 0,
-      };
-      setSysStatus(merged);
-      return { type: 'system_status', data: merged };
-    } catch {
-      return "I couldn't fetch the system status right now. Please try again in a moment.";
-    }
-  };
-
-  const handleCounts = async () => {
-    try {
-      const [customerRes, campaignRes] = await Promise.all([
-        api.get('/api/customers?limit=1').catch(() => ({ data: {} })),
-        api.get('/api/campaigns?limit=1').catch(() => ({ data: {} })),
-      ]);
-      const totalCustomers = customerRes.data?.total || 0;
-      const totalCampaigns = campaignRes.data?.campaigns?.length
-        ? campaignRes.data.total || campaignRes.data.campaigns.length
-        : (campaignRes.data?.total || 0);
-      const activeCampaigns = campaignRes.data?.campaigns
-        ? campaignRes.data.campaigns.filter(c => c.status === 'running' || c.status === 'draft').length
-        : 0;
-      return { type: 'counts', data: { customers: totalCustomers, campaigns: totalCampaigns, activeCampaigns, runningCampaigns: campaignRes.data?.campaigns?.filter(c => c.status === 'running').length || 0 } };
-    } catch {
-      return "Couldn't retrieve counts right now. The database might be unavailable.";
-    }
-  };
-
-  const handleTopCustomers = async () => {
-    try {
-      const r = await api.get('/api/customers?limit=10&sort=ltv').catch(() => ({ data: {} }));
-      const customers = r.data?.customers || [];
-      if (!customers.length) return "No customer data found yet.";
-      return { type: 'top_customers', customers };
-    } catch {
-      return "Couldn't fetch customer data right now.";
-    }
-  };
-
-  const handleRecentCampaigns = async () => {
-    try {
-      const r = await api.get('/api/campaigns?limit=5&sort=-createdAt').catch(() => ({ data: {} }));
-      const campaigns = r.data?.campaigns || r.data || [];
-      if (!campaigns.length) return "No campaigns found yet. Create your first campaign!";
-      return { type: 'recent_campaigns', campaigns };
-    } catch {
-      return "Couldn't fetch campaigns right now.";
-    }
-  };
-
-  // ─── Pattern matcher ────────────────────────────────────────────────────────
-
-  const routeMessage = async (text) => {
-    const lower = text.toLowerCase();
-
-    // About / help patterns
-    if (/what (is|does) (this|xeno|your|the) (crm|app|platform|software|application)\??$/.test(lower) ||
-        /what are you\??$/.test(lower) ||
-        /who are you\??$/.test(lower) ||
-        /how (do|can) i (use|work with) (this|xeno|your|the) (crm|app|platform)\??$/.test(lower) ||
-        /what can you (do|help|assist)\??$/.test(lower) ||
-        /help( me)?( with)?( this)?$/i.test(lower) ||
-        /^about$/.test(lower.trim())) {
-      return { type: 'text', content: await handleAbout() };
-    }
-
-    // System status patterns
-    if (/system (status|health|check)\??$/.test(lower) ||
-        /(is everything|is the system|is it) (working|running|ok|healthy|up)\??$/.test(lower) ||
-        /how('s| is) the (system|app|platform) (doing|running)\??$/.test(lower) ||
-        /(show|display|get) (me)? ?(system|status) (report|info|overview)\??$/.test(lower) ||
-        /^status$/.test(lower.trim())) {
-      return handleSystemStatus();
-    }
-
-    // Count / stats patterns
-    if (/how many (customers?|campaigns?|segments?|orders?|opportunities?)\??$/.test(lower) ||
-        /total (customers?|campaigns?|segments?|orders?)\??$/.test(lower) ||
-        /(show|what('s| is)?|tell me|get) (me )?(the )?(total|count|number) (of )?(customers?|campaigns?|segments?|orders?)\??$/.test(lower) ||
-        /(customers?|campaigns?|segments?) (count|stats|statistics|overview)\??$/.test(lower)) {
-      return handleCounts();
-    }
-
-    // Top customers patterns
-    if (/top (customers?|buyers?|high.?value|lvp)\??$/.test(lower) ||
-        /best (customers?|buyers?)\??$/.test(lower) ||
-        /highest (ltv|spend|value) (customers?)?\??$/.test(lower) ||
-        /vip (customers?|buyers?)\??$/.test(lower) ||
-        /(show|what('s| is)?|tell me|get) (me )?(the )?top( |-)?(customers?|buyers?|high.?value)\??$/.test(lower) ||
-        /(who are|which are) (my |the )?(best|top|high.?value) (customers?|buyers?)\??$/.test(lower)) {
-      return handleTopCustomers();
-    }
-
-    // Recent / last campaign patterns
-    if (/recent (campaigns?|orders?|activity)\??$/.test(lower) ||
-        /latest (campaigns?|orders?|activity)\??$/.test(lower) ||
-        /last (campaign|order|activity)\??$/.test(lower) ||
-        /(show|what('s| is)?|tell me|get) (me )?(the )?recent (campaigns?|orders?|activity)\??$/.test(lower) ||
-        /(what was|how did) (my|the) (last|latest) (campaign|order)\??$/.test(lower)) {
-      return handleRecentCampaigns();
-    }
-
-    // Fall through to LLM
-    return null;
+  const handleSuggestion = (text) => {
+    setInput(text);
   };
 
   const handleSend = async () => {
@@ -238,70 +172,125 @@ export default function AICommandCentre({ onClose }) {
     setMessages(prev => [...prev, { role: 'user', content: msg }]);
     setInput('');
 
-    const routed = await routeMessage(msg);
-
-    if (routed) {
-      if (routed.type === 'text') {
-        setMessages(prev => [...prev, { role: 'assistant', content: routed.content, structuredEvents: [] }]);
-      } else if (routed.type === 'system_status') {
-        setMessages(prev => [...prev, { role: 'assistant', content: 'Here is the current system status:', structuredEvents: [{ type: 'text', content: '' }, routed] }]);
-      } else if (routed.type === 'counts') {
-        setMessages(prev => [...prev, { role: 'assistant', content: `Here are the current counts:`, structuredEvents: [routed] }]);
-      } else if (routed.type === 'top_customers') {
-        setMessages(prev => [...prev, { role: 'assistant', content: 'Here are your top customers by LTV:', structuredEvents: [routed] }]);
-      } else if (routed.type === 'recent_campaigns') {
-        setMessages(prev => [...prev, { role: 'assistant', content: 'Here are your most recent campaigns:', structuredEvents: [routed] }]);
-      }
-      return;
-    }
-
-    // Route to LLM
     const token = await getToken();
     await startStream(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/agent/chat`,
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/agent/command`,
       { session_id: sessionId, message: msg },
       token
     );
   };
 
-  useEffect(() => {
-    if (events.length > 0) {
-      const lastEvent = events[events.length - 1];
-      if (lastEvent.type === 'text') {
+  // Handle command_result events — these tell us what API to call
+  const handleCommandResult = async (data) => {
+    const { action, params } = data;
+    try {
+      let fetchedData = null;
+      switch (action) {
+        case 'fetch_customers': {
+          const r = await api.get('/api/customers', { params: { ...params, limit: params.limit || 10 } });
+          fetchedData = { customers: r.data.customers || r.data };
+          break;
+        }
+        case 'fetch_campaigns': {
+          const r = await api.get('/api/campaigns', { params: { ...params, sort: params.sort || '-createdAt' } });
+          fetchedData = { campaigns: r.data.campaigns || r.data };
+          break;
+        }
+        case 'fetch_segments': {
+          const r = await api.get('/api/segments');
+          fetchedData = { segments: r.data.segments || r.data };
+          break;
+        }
+        case 'fetch_pipeline_status': {
+          const r = await api.get('/api/pipeline/status');
+          fetchedData = { pipeline: r.data };
+          break;
+        }
+        case 'fetch_system_status': {
+          const r = await api.get('/api/agent/system-status');
+          fetchedData = { pipeline: r.data };
+          break;
+        }
+        case 'fetch_opportunities': {
+          const r = await api.get('/api/opportunities', { params: { status: 'active', limit: params.limit || 5 } });
+          fetchedData = { opportunities: r.data.opportunities || r.data };
+          break;
+        }
+        case 'generate_campaign': {
+          fetchedData = { campaign_details: params };
+          break;
+        }
+        default:
+          break;
+      }
+      if (fetchedData) {
         setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last?.role === 'assistant') {
             const updated = [...prev];
-            updated[updated.length - 1] = { ...last, content: lastEvent.content };
+            const existing = updated[updated.length - 1];
+            updated[updated.length - 1] = { ...existing, fetchData: { ...existing.fetchData, ...fetchedData } };
             return updated;
           }
-          return [...prev, { role: 'assistant', content: lastEvent.content, structuredEvents: [] }];
-        });
-      } else {
-        setMessages(prev => {
-          const last = prev[prev.length - 1];
-          if (last?.role === 'assistant') {
-            const updated = [...prev];
-            updated[updated.length - 1] = { ...last, structuredEvents: [...(last.structuredEvents || []), lastEvent] };
-            return updated;
-          }
-          return [...prev, { role: 'assistant', content: '', structuredEvents: [lastEvent] }];
+          return [...prev, { role: 'assistant', content: '', fetchData: fetchedData, structuredEvents: [] }];
         });
       }
+    } catch (e) {
+      console.error('Failed to fetch data:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (events.length === 0) return;
+    const lastEvent = events[events.length - 1];
+
+    if (lastEvent.type === 'command_result') {
+      handleCommandResult(lastEvent.data);
+      // Don't add as a regular message, the handler above updates the last message
+      return;
+    }
+
+    if (lastEvent.type === 'text') {
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant') {
+          const updated = [...prev];
+          updated[updated.length - 1] = { ...last, content: lastEvent.content };
+          return updated;
+        }
+        return [...prev, { role: 'assistant', content: lastEvent.content, fetchData: null, structuredEvents: [] }];
+      });
+    } else if (lastEvent.type !== 'done') {
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant') {
+          const updated = [...prev];
+          updated[updated.length - 1] = { ...last, structuredEvents: [...(last.structuredEvents || []), lastEvent] };
+          return updated;
+        }
+        return [...prev, { role: 'assistant', content: '', fetchData: null, structuredEvents: [lastEvent] }];
+      });
     }
   }, [events]);
 
-  const renderStructuredEvent = (event) => {
-    if (event.type === 'system_status') return <SystemStatusCard data={event.data} />;
-    if (event.type === 'counts') return <CountsCard data={event.data} />;
-    if (event.type === 'top_customers') return <TopCustomersCard customers={event.customers} />;
-    if (event.type === 'recent_campaigns') return <RecentCampaignsCard campaigns={event.campaigns} />;
-    return null;
+  const renderFetchData = (msg) => {
+    const fd = msg.fetchData;
+    if (!fd) return null;
+    return (
+      <div className="mt-2 space-y-2">
+        {fd.customers && <CustomersTableCard customers={fd.customers} />}
+        {fd.campaigns && <CampaignsTableCard campaigns={fd.campaigns} />}
+        {fd.segments && <SegmentsTableCard segments={fd.segments} />}
+        {fd.pipeline && <PipelineCard data={fd.pipeline} />}
+        {fd.opportunities && <CampaignsTableCard campaigns={fd.opportunities.map(o => ({ _id: o._id, name: o.title, channel: o.recommended_channel || 'whatsapp', status: 'opportunity', stats: { sent: 0 }, createdAt: o.createdAt }))} />}
+        {fd.campaign_details && <CampaignPlanCard details={fd.campaign_details} />}
+      </div>
+    );
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-2xl w-[680px] max-h-[80vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-[700px] max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#0fd4b4] flex items-center justify-center">
@@ -309,7 +298,7 @@ export default function AICommandCentre({ onClose }) {
             </div>
             <div>
               <p className="font-bold text-gray-900">AI Command Centre</p>
-              <p className="text-xs text-gray-500">System overview & assistant</p>
+              <p className="text-xs text-gray-500">Ask anything or describe a marketing goal</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -334,34 +323,44 @@ export default function AICommandCentre({ onClose }) {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.length === 0 && (
-            <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3 max-w-[80%]">
-              <p className="text-sm text-gray-700">
-                Hello! I'm the Xeno AI Command Centre. Ask me about the system, your customers, or campaigns — or describe any marketing goal and I'll generate a campaign for you.
-              </p>
-              <p className="text-xs text-gray-400 text-right mt-1">{new Date().toLocaleTimeString()}</p>
+            <div>
+              <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3 max-w-[80%]">
+                <p className="text-sm text-gray-700">
+                  Hello! I can answer questions about your CRM, check system status, analyze customers and campaigns, or help you create marketing campaigns. What would you like to do?
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3 ml-2">
+                {suggestions.map(s => (
+                  <button key={s} onClick={() => handleSuggestion(s)} className="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-600 hover:bg-gray-50 hover:border-[#0fd4b4] hover:text-[#0fd4b4] transition-colors">
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-400 mt-2 ml-2">Click a suggestion or type your own query</p>
             </div>
           )}
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] ${msg.role === 'user' ? 'bg-[#0fd4b4] text-white rounded-2xl rounded-tr-none px-4 py-3' : 'bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3'}`}>
+              <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#0fd4b4] text-white rounded-2xl rounded-tr-none px-4 py-3' : 'bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3'}`}>
                 {msg.content && <p className="text-sm">{msg.content}</p>}
-                {msg.structuredEvents && msg.structuredEvents.length > 0 && (
-                  <div className="mt-2">
-                    {msg.structuredEvents.map((ev, j) => {
-                      if (ev.type && ev.type !== 'text') return <div key={j}>{renderStructuredEvent(ev)}</div>;
-                      if (ev.type === 'text' && ev.content) return <p key={j} className="text-sm text-gray-700">{ev.content}</p>;
-                      if (ev.structuredEvents) return <AgentResponseRenderer key={j} events={ev.structuredEvents} />;
-                      return null;
-                    })}
-                  </div>
-                )}
+                {msg.fetchData && renderFetchData(msg)}
+                {msg.structuredEvents?.length > 0 && msg.structuredEvents.map((ev, j) => {
+                  if (ev.type === 'campaign_details') {
+                    return <CampaignPlanCard key={j} details={ev.data?.CampaignDetails || ev.data} />;
+                  }
+                  return null;
+                })}
               </div>
             </div>
           ))}
           {isStreaming && (
             <div className="flex justify-start">
               <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3">
-                <div className="flex gap-1"><span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} /><span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} /><span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} /></div>
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
               </div>
             </div>
           )}

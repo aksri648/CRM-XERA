@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, Any
 
 
 class IntentResult(BaseModel):
@@ -92,3 +92,10 @@ class CampaignDetails(BaseModel):
 class CampaignDetailsResult(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     campaign_details: CampaignDetails = Field(alias="CampaignDetails")
+
+
+class CommandResult(BaseModel):
+    answer: str
+    action: str  # one of: answer_only | fetch_customers | fetch_campaigns | fetch_segments | fetch_opportunities | fetch_system_status | generate_campaign | fetch_pipeline_status
+    data: dict = Field(default_factory=dict)
+    next_step_suggestion: str = ""

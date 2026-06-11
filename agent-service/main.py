@@ -11,6 +11,7 @@ load_dotenv()
 from crew.crews.campaign_crew import CampaignCrew
 from crew.crews.opportunity_crew import OpportunityCrew
 from crew.crews.insights_crew import InsightsCrew
+from crew.crews.command_crew import CommandCrew
 
 app = FastAPI(title="Xeno AI Agent Service")
 
@@ -29,6 +30,12 @@ class ChatRequest(BaseModel):
     context: dict = {}
 
 
+class CommandRequest(BaseModel):
+    session_id: str = Field(..., min_length=1)
+    message: str = Field(..., min_length=1)
+    token: str = Field(..., min_length=1)
+
+
 class OpportunityScanRequest(BaseModel):
     context: dict = {}
 
@@ -43,6 +50,23 @@ async def chat(body: ChatRequest):
         try:
             crew = CampaignCrew()
             events = await asyncio.to_thread(crew.run, body.message, body.context)
+            for event in events:
+                yield f"data: {json.dumps(event)}\n\n"
+                await asyncio.sleep(0.05)
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.post("/crew/command")
+async def command(body: CommandRequest):
+    async def generate():
+        try:
+            crew = CommandCrew()
+            context = {**body.context, 'token': body.token}
+            events = await asyncio.to_thread(crew.run, body.message, context)
             for event in events:
                 yield f"data: {json.dumps(event)}\n\n"
                 await asyncio.sleep(0.05)

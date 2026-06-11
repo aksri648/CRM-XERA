@@ -50,6 +50,44 @@ router.post('/chat', async (req, res, next) => {
   }
 });
 
+router.post('/command', async (req, res, next) => {
+  try {
+    const { session_id, message } = req.body;
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace('Bearer ', '');
+
+    const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
+    const agentResponse = await fetch(`${agentServiceUrl}/crew/command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id, message, token, context: {} }),
+    });
+
+    if (!agentResponse.ok) {
+      return res.status(502).json({ error: 'Agent service error' });
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const reader = agentResponse.body.getReader();
+    const decoder = new TextDecoder();
+    let closed = false;
+    req.on('close', () => { closed = true; });
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done || closed) { res.end(); break; }
+      res.write(decoder.decode(value));
+    }
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    res.end();
+  }
+});
+
 router.post('/confirm', async (req, res, next) => {
   try {
     const { session_id, action, data } = req.body;
