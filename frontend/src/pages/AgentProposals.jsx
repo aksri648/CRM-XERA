@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, CheckCircle, XCircle } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Send } from 'lucide-react';
 import api from '../lib/api';
 import { Button } from 'src/components/ui/button';
 import { Card, CardContent } from 'src/components/ui/card';
@@ -114,7 +114,7 @@ export default function AgentProposals() {
             </div>
             <div className="flex gap-2 mt-4">
               <Button onClick={() => handleApprove(p._id)} className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white" size="sm">
-                <CheckCircle size={16} /> Approve & Launch
+                <Send size={16} /> Send Campaign
               </Button>
               <Button onClick={() => handleReject(p._id)} variant="outline" size="sm">
                 <XCircle size={16} /> Reject

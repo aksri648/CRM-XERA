@@ -111,21 +111,17 @@ export default function AIStudio() {
     const description = details?.['Description'] || details?.description || '';
     const productCategory = details?.['ProductCategory'] || details?.product_category || '';
     try {
-      const res = await api.post('/api/campaigns', {
-        name: title,
+      await api.post('/api/proposals', {
+        title,
         segmentId: null,
         channel: 'whatsapp',
         messageTemplate: description,
-        createdBy: 'agent',
-        status: 'draft',
+        aiReasoning: `Target audience: ${targetAudience}. Product category: ${productCategory}`,
       });
-      const campaignId = res.data.campaign?._id || res.data?._id;
-      toast.success('Campaign created! Add segment and message before launching.');
-      setShowCampaignModal(false);
-      setCampaignForm(EMPTY_FORM);
-      navigate('/campaigns');
+      toast.success('Campaign proposal sent to Agent Proposals!');
+      navigate('/proposals');
     } catch (err) {
-      toast.error('Failed to create campaign: ' + (err?.response?.data?.error || err?.message));
+      toast.error('Failed to create proposal: ' + (err?.response?.data?.error || err?.message));
     }
   };
 

@@ -10,6 +10,22 @@ import { launchCampaign } from '../services/campaignLauncher.js';
 const router = Router();
 router.use(requireAuth());
 
+router.post('/', async (req, res, next) => {
+  try {
+    const { title, segmentId, channel, messageTemplate, confidenceScore, aiReasoning } = req.body;
+    const proposal = await AgentProposal.create({
+      title,
+      segmentId: segmentId || null,
+      channel: channel || 'whatsapp',
+      messageTemplate: messageTemplate || '',
+      confidenceScore,
+      aiReasoning,
+      status: 'pending',
+    });
+    res.status(201).json({ proposal });
+  } catch (err) { next(err); }
+});
+
 router.get('/', async (req, res, next) => {
   try {
     const { status } = req.query;
