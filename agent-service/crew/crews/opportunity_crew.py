@@ -21,6 +21,7 @@ class OpportunityCrew:
             agents=[self.scanner],
             tasks=[task],
             process=Process.sequential,
+            function_calling_llm=self.llm,
             verbose=False,
         )
         result = crew.kickoff()

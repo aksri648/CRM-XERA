@@ -63,6 +63,7 @@ class CampaignCrew:
             agents=[self.intent_classifier, self.data_analyst, self.segment_builder, self.message_composer, self.campaign_dispatcher],
             tasks=[intent_task, data_task, segment_task, compose_task, dispatch_task],
             process=Process.sequential,
+            function_calling_llm=self.llm,
             verbose=False,
         )
 

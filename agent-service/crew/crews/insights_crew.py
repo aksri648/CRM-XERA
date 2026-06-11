@@ -20,6 +20,7 @@ class InsightsCrew:
             agents=[self.reporter],
             tasks=[task],
             process=Process.sequential,
+            function_calling_llm=self.llm,
             verbose=False,
         )
         result = crew.kickoff()
