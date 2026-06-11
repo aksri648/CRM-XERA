@@ -18,6 +18,13 @@ const suggestionPills = [
 
 const EMPTY_FORM = { name: '', segmentId: '', channel: 'whatsapp', messageTemplate: '' };
 
+const DEFAULT_SEGMENTS = [
+  { name: 'Active Buyers', createdBy: 'agent', filterRules: [{ field: 'totalOrders', operator: 'gte', value: 3 }], logic: 'AND' },
+  { name: 'Value Buyers', createdBy: 'agent', filterRules: [{ field: 'ltv', operator: 'gte', value: 1000 }, { field: 'totalOrders', operator: 'lt', value: 5 }], logic: 'AND' },
+  { name: 'High Risk of Leaving', createdBy: 'agent', filterRules: [{ field: 'last_order_days', operator: 'gt', value: 60 }, { field: 'ltv', operator: 'gt', value: 0 }], logic: 'AND' },
+  { name: 'VIP', createdBy: 'agent', filterRules: [{ field: 'ltv', operator: 'gte', value: 10000 }], logic: 'AND' },
+];
+
 export default function AIStudio() {
   const navigate = useNavigate();
   const { getToken } = useAuth();
@@ -34,7 +41,10 @@ export default function AIStudio() {
   const [segmentsLoading, setSegmentsLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/api/segments').then(r => { setSegments(r.data.segments || r.data); setSegmentsLoading(false); }).catch(() => setSegmentsLoading(false));
+    Promise.all(DEFAULT_SEGMENTS.map(seg => api.post('/api/segments', seg).catch(() => {})))
+      .finally(() => {
+        api.get('/api/segments').then(r => { setSegments(r.data.segments || r.data); setSegmentsLoading(false); }).catch(() => setSegmentsLoading(false));
+      });
   }, []);
 
   useEffect(() => {
