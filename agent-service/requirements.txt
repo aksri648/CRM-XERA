@@ -4,3 +4,21 @@ crewai==0.28.0
 crewai-tools==0.1.6
 pydantic==2.6.4
 python-dotenv==1.0.0
+
+# Pin transitive deps of crewai/crewai-tools to stop pip resolver backtracking.
+# Versions chosen to match the crewai 0.28.0 (March 2024) ecosystem.
+langchain==0.1.20
+langchain-community==0.0.38
+langchain-core==0.1.52
+langchain-openai==0.1.7
+langchain-cohere==0.1.5
+langchain-text-splitters==0.0.2
+langsmith==0.1.77
+chromadb==0.4.24
+embedchain==0.1.128
+openai==1.30.5
+cohere==5.5.0
+tokenizers==0.15.2
+instructor==0.5.2
+tiktoken==0.6.0
+onnxruntime==1.17.3
