@@ -20,9 +20,29 @@ export default function Segments() {
   const [logic, setLogic] = useState('AND');
   const [preview, setPreview] = useState(null);
   const [segmentName, setSegmentName] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const fetchAiSegments = () => {
+    api.get('/api/segments?created_by=agent').then(r => {
+      const all = r.data.segments || r.data;
+      const seen = new Set();
+      setAiSegments(all.filter(s => { if (seen.has(s.name)) return false; seen.add(s.name); return true; }));
+    }).catch(() => {});
+  };
+
+  const handleGenerateSegments = async () => {
+    setGenerating(true);
+    try {
+      await api.post('/api/segments/generate');
+      await new Promise(r => setTimeout(r, 2000));
+      fetchAiSegments();
+    } catch (e) {} finally {
+      setGenerating(false);
+    }
+  };
 
   useEffect(() => {
-    api.get('/api/segments?created_by=agent').then(r => setAiSegments(r.data.segments || r.data)).catch(() => {});
+    fetchAiSegments();
     api.get('/api/segments?created_by=human').then(r => setManualSegments(r.data.segments || r.data)).catch(() => {});
   }, []);
 
@@ -74,8 +94,13 @@ export default function Segments() {
         </TabsList>
 
         <TabsContent value="ai-suggested">
-          <div className="flex items-center gap-2 mb-4"><h2 className="font-semibold text-gray-900">AI-Suggested Segments</h2><Badge className="bg-[#0fd4b4]/20 text-[#0fd4b4] border-0 font-medium">AI Powered</Badge></div>
-          <p className="text-sm text-gray-500 mb-4">Based on your customer data, our AI has identified these high-potential segments:</p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2"><h2 className="font-semibold text-gray-900">AI-Suggested Segments</h2><Badge className="bg-[#0fd4b4]/20 text-[#0fd4b4] border-0 font-medium">AI Powered</Badge></div>
+            <Button variant="outline" size="sm" onClick={handleGenerateSegments} disabled={generating} className="border-[#0fd4b4] text-[#0fd4b4] hover:bg-[#0fd4b4] hover:text-white">
+              <Sparkles size={14} className="mr-1" /> {generating ? 'Generating...' : 'Regenerate Segments'}
+            </Button>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">Based on your customer data, our AI analyzes patterns and creates meaningful audience segments:</p>
           <div className="grid grid-cols-2 gap-4">
             {aiSegments.map(s => (
               <Card key={s._id}>

@@ -47,15 +47,12 @@ export default function AIStudio() {
   const [segmentsLoading, setSegmentsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all(DEFAULT_SEGMENTS.map(seg => api.post('/api/segments', seg).catch(() => {})))
-      .finally(() => {
-        api.get('/api/segments').then(r => {
-          const all = r.data.segments || r.data;
-          const seen = new Set();
-          setSegments(all.filter(s => { if (seen.has(s.name)) return false; seen.add(s.name); return true; }));
-          setSegmentsLoading(false);
-        }).catch(() => setSegmentsLoading(false));
-      });
+    api.get('/api/segments').then(r => {
+      const all = r.data.segments || r.data;
+      const seen = new Set();
+      setSegments(all.filter(s => { if (seen.has(s.name)) return false; seen.add(s.name); return true; }));
+      setSegmentsLoading(false);
+    }).catch(() => setSegmentsLoading(false));
   }, []);
 
   useEffect(() => {

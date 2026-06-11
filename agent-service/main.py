@@ -12,6 +12,7 @@ from crew.crews.campaign_crew import CampaignCrew
 from crew.crews.opportunity_crew import OpportunityCrew
 from crew.crews.insights_crew import InsightsCrew
 from crew.crews.command_crew import CommandCrew
+from crew.crews.segment_crew import SegmentCrew
 
 app = FastAPI(title="Xeno AI Agent Service")
 
@@ -42,6 +43,10 @@ class OpportunityScanRequest(BaseModel):
 
 class InsightsRequest(BaseModel):
     campaign_stats: dict = {}
+
+
+class SegmentGenerateRequest(BaseModel):
+    token: str = Field(..., min_length=1)
 
 
 @app.post("/crew/chat")
@@ -95,6 +100,16 @@ async def get_insights(body: InsightsRequest):
         return result
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/crew/segment")
+async def generate_segments(body: SegmentGenerateRequest):
+    try:
+        crew = SegmentCrew()
+        result = await asyncio.to_thread(crew.run, {'token': body.token})
+        return result
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e), "segments": []})
 
 
 @app.get("/health")

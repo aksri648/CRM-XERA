@@ -16,13 +16,43 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/generate', async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace('Bearer ', '');
+
+    const response = await fetch(`${process.env.AGENT_SERVICE_URL || 'http://localhost:8001'}/api/crew/segment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      return res.status(response.status).json({ error: err });
+    }
+
+    const result = await response.json();
+    res.json({ ok: true, segments: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/', async (req, res, next) => {
   try {
-    if (req.body.name) {
-      const existing = await Segment.findOne({ name: { $regex: `^${req.body.name}$`, $options: 'i' } });
-      if (existing) return res.status(200).json({ segment: existing });
+    if (!req.body.name) return res.status(400).json({ error: 'name is required' });
+    const { filterRules, logic } = req.body;
+    const mongoQuery = buildMongoQuery(filterRules || [], logic || 'AND');
+    const customerCount = await Customer.countDocuments(mongoQuery);
+    const segment = await Segment.findOneAndUpdate(
+      { name: { $regex: `^${req.body.name}$`, $options: 'i' } },
+      { $setOnInsert: { ...req.body, customerCount } },
+      { upsert: true, new: true, runValidators: true }
+    );
+    if (segment.customerCount !== customerCount) {
+      segment.customerCount = customerCount;
+      await segment.save();
     }
-    const segment = await Segment.create(req.body);
     res.status(201).json({ segment });
   } catch (err) { next(err); }
 });
