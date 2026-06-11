@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from "src/components/ui/button";
 import { Input } from "src/components/ui/input";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "src/components/ui/dialog";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "src/components/ui/select";
+import { cn } from '../lib/utils';
 import { Textarea } from "src/components/ui/textarea";
 import { useSSE } from '../hooks/useSSE';
 import AgentResponseRenderer from '../components/AgentResponseRenderer';
@@ -31,9 +31,10 @@ export default function AIStudio() {
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [campaignForm, setCampaignForm] = useState(EMPTY_FORM);
   const [segments, setSegments] = useState([]);
+  const [segmentsLoading, setSegmentsLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/api/segments').then(r => setSegments(r.data.segments || r.data)).catch(() => {});
+    api.get('/api/segments').then(r => { setSegments(r.data.segments || r.data); setSegmentsLoading(false); }).catch(() => setSegmentsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -258,7 +259,7 @@ export default function AIStudio() {
       </div>
 
       <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[480px]" style={{ zIndex: 100 }}>
           <DialogHeader>
             <DialogTitle>Edit Campaign</DialogTitle>
           </DialogHeader>
@@ -268,19 +269,22 @@ export default function AIStudio() {
               onChange={e => setCampaignForm({ ...campaignForm, name: e.target.value })}
               placeholder="Campaign Name"
             />
-            <Select
-              value={campaignForm.segmentId || undefined}
-              onValueChange={val => setCampaignForm({ ...campaignForm, segmentId: val })}
+            <select
+              value={campaignForm.segmentId || ''}
+              onChange={e => setCampaignForm({ ...campaignForm, segmentId: e.target.value })}
+              disabled={segmentsLoading}
+              className={cn(
+                "w-full h-10 px-3 rounded-md border border-slate-200 bg-white text-sm",
+                "focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+                !campaignForm.segmentId && "text-slate-500"
+              )}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Segment" />
-              </SelectTrigger>
-              <SelectContent>
-                {segments.map(s => (
-                  <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="">{segmentsLoading ? 'Loading segments...' : 'Select Segment'}</option>
+              {segments.map(s => (
+                <option key={s._id} value={s._id}>{s.name}</option>
+              ))}
+            </select>
             <div className="flex gap-2">
               {['whatsapp', 'sms', 'email', 'rcs'].map(ch => (
                 <button
