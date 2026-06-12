@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import Campaign from '../models/Campaign.js';
 import Segment from '../models/Segment.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.post('/chat', async (req, res, next) => {
   try {
@@ -53,14 +51,11 @@ router.post('/chat', async (req, res, next) => {
 router.post('/command', async (req, res, next) => {
   try {
     const { session_id, message } = req.body;
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '');
-
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
     const agentResponse = await fetch(`${agentServiceUrl}/crew/command`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id, message, token, context: {} }),
+      body: JSON.stringify({ session_id, message, context: {} }),
     });
 
     if (!agentResponse.ok) {

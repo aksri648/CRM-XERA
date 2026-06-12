@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import Campaign from '../models/Campaign.js';
 import PipelineEvent from '../models/PipelineEvent.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.get('/status', async (req, res, next) => {
   try {

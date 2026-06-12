@@ -5,19 +5,4 @@ const api = axios.create({
   withCredentials: true,
 });
 
-let interceptorId = null;
-
-export function setupInterceptors(getToken) {
-  if (interceptorId !== null) return;
-  interceptorId = api.interceptors.request.use(async (config) => {
-    try {
-      const token = await getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (e) {}
-    return config;
-  });
-}
-
 export default api;

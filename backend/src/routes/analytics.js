@@ -1,11 +1,9 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import Customer from '../models/Customer.js';
 import Campaign from '../models/Campaign.js';
 import Communication from '../models/Communication.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.get('/overview', async (req, res, next) => {
   try {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth, useUser } from '@clerk/clerk-react';
-import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog, LogOut, Menu } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+
+import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog } from 'lucide-react';
 import api from '../../lib/api';
 
 const navGroups = [
@@ -44,9 +44,6 @@ const navGroups = [
 ];
 
 export default function Sidebar({ onOpenCommandCentre }) {
-  const navigate = useNavigate();
-  const { signOut } = useAuth();
-  const { user } = useUser();
   const [badges, setBadges] = useState({ opportunities: 0, proposals: 0 });
 
   useEffect(() => {
@@ -63,9 +60,6 @@ export default function Sidebar({ onOpenCommandCentre }) {
     const interval = setInterval(fetchBadges, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const initials = user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0] || 'A';
-  const displayName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Admin';
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[260px] bg-[#0f1923] z-40 flex flex-col">
@@ -130,15 +124,11 @@ export default function Sidebar({ onOpenCommandCentre }) {
 
       <div className="border-t border-white/10 p-4 flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white text-xs font-bold">
-          {initials}
+          A
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-slate-300 truncate">{displayName}</p>
-          <p className="text-xs text-slate-500 truncate">{user?.primaryEmailAddress?.emailAddress || ''}</p>
+          <p className="text-sm text-slate-300 truncate">Admin</p>
         </div>
-        <button onClick={() => signOut()} className="text-slate-500 hover:text-slate-300">
-          <LogOut size={16} />
-        </button>
       </div>
     </aside>
   );

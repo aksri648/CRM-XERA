@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import AgentProposal from '../models/AgentProposal.js';
 import Campaign from '../models/Campaign.js';
 import { buildMongoQuery } from '../services/segmentation.js';
@@ -8,7 +7,6 @@ import Customer from '../models/Customer.js';
 import { launchCampaign } from '../services/campaignLauncher.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.post('/', async (req, res, next) => {
   try {

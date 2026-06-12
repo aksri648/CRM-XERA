@@ -1,9 +1,7 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import ABTest from '../models/ABTest.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.get('/', async (req, res, next) => {
   try {

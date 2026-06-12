@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+
 import { Bot, X, Send, Users, Megaphone, TrendingUp, CheckCircle, AlertCircle, MousePointerClick, Eye, DollarSign } from 'lucide-react';
 import { useSSE } from '../hooks/useSSE';
 import api from '../lib/api';
@@ -134,7 +134,7 @@ function CampaignPlanCard({ details }) {
 }
 
 export default function AICommandCentre({ onClose }) {
-  const { getToken } = useAuth();
+
   const [sessionId] = useState(() => crypto.randomUUID());
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
@@ -172,11 +172,9 @@ export default function AICommandCentre({ onClose }) {
     setMessages(prev => [...prev, { role: 'user', content: msg }]);
     setInput('');
 
-    const token = await getToken();
     await startStream(
       `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/agent/command`,
-      { session_id: sessionId, message: msg },
-      token
+      { session_id: sessionId, message: msg }
     );
   };
 

@@ -1,9 +1,7 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import Order from '../models/Order.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.get('/', async (req, res, next) => {
   try {

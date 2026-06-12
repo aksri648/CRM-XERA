@@ -5,7 +5,7 @@ export function useSSE() {
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef(null);
 
-  const startStream = useCallback(async (url, body, token) => {
+  const startStream = useCallback(async (url, body) => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setIsStreaming(true);
@@ -16,7 +16,6 @@ export function useSSE() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
         signal: abortRef.current.signal,

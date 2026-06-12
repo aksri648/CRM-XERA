@@ -1,22 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+
 import { Toaster } from 'src/components/ui/sonner';
 import Sidebar from './Sidebar';
 import AICommandCentre from '../AICommandCentre';
-import { setupInterceptors } from '../../lib/api';
+
 import { Bot } from 'lucide-react';
 
 export default function AppLayout() {
-  const { getToken, isLoaded } = useAuth();
+
   const [showCommandCentre, setShowCommandCentre] = useState(false);
   const [showFloatingBot, setShowFloatingBot] = useState(false);
 
-  useEffect(() => {
-    if (isLoaded) {
-      setupInterceptors(getToken);
-    }
-  }, [isLoaded, getToken]);
+
 
   useEffect(() => {
     setShowFloatingBot(true);

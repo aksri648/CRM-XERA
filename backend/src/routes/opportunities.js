@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import Opportunity from '../models/Opportunity.js';
 import AgentProposal from '../models/AgentProposal.js';
 import Customer from '../models/Customer.js';
@@ -7,7 +6,6 @@ import Campaign from '../models/Campaign.js';
 import Order from '../models/Order.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.get('/', async (req, res, next) => {
   try {

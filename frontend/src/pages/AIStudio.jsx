@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Send, Bot, User } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,7 +33,7 @@ const DEFAULT_SEGMENTS = [
 
 export default function AIStudio() {
   const navigate = useNavigate();
-  const { getToken } = useAuth();
+
   const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -67,11 +67,9 @@ export default function AIStudio() {
     setInput('');
     if (!hasStarted) setHasStarted(true);
 
-    const token = await getToken();
     await startStream(
       `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/agent/chat`,
-      { session_id: sessionId, message },
-      token
+      { session_id: sessionId, message }
     );
   };
 

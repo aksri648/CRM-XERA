@@ -1,11 +1,9 @@
 import { Router } from 'express';
-import { requireAuth } from '@clerk/express';
 import Segment from '../models/Segment.js';
 import Customer from '../models/Customer.js';
 import { buildMongoQuery } from '../services/segmentation.js';
 
 const router = Router();
-router.use(requireAuth());
 
 router.get('/', async (req, res, next) => {
   try {
