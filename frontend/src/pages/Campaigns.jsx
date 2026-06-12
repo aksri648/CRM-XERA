@@ -100,9 +100,7 @@ export default function Campaigns() {
     <div>
       <div className="flex items-center justify-between mb-6">
           <div><h1 className="text-2xl font-bold text-gray-900">Campaigns</h1><p className="text-sm text-gray-500 mt-1">Manage your marketing campaigns</p></div>
-          <DialogTrigger asChild>
-            <Button className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white"><Plus size={16} /> Create Campaign</Button>
-          </DialogTrigger>
+          <Button onClick={() => setShowModal(true)} className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white"><Plus size={16} /> Create Campaign</Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
