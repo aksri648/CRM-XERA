@@ -8,8 +8,14 @@ const router = Router();
 router.get('/', async (req, res, next) => {
   try {
     const { created_by } = req.query;
-    const query = created_by ? { createdBy: created_by } : {};
-    const segments = await Segment.find(query).sort({ createdAt: -1 });
+    const match = created_by ? { createdBy: created_by } : {};
+    const segments = await Segment.aggregate([
+      { $match: match },
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: { $toLower: '$name' }, doc: { $first: '$$ROOT' } } },
+      { $replaceRoot: { newRoot: '$doc' } },
+      { $sort: { createdAt: -1 } },
+    ]);
     res.json({ segments });
   } catch (err) { next(err); }
 });
