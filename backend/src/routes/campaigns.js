@@ -98,11 +98,8 @@ router.patch('/:id/stop', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const campaign = await Campaign.findById(req.params.id);
-    if (!campaign || (campaign.status !== 'draft' && campaign.status !== 'stopped')) {
-      return res.status(400).json({ error: 'Only draft or stopped campaigns can be deleted' });
-    }
-    await Campaign.findByIdAndDelete(req.params.id);
+    const campaign = await Campaign.findByIdAndDelete(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
     res.json({ ok: true });
   } catch (err) { next(err); }
 });
