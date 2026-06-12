@@ -98,15 +98,14 @@ export default function Campaigns() {
 
   return (
     <div>
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6">
           <div><h1 className="text-2xl font-bold text-gray-900">Campaigns</h1><p className="text-sm text-gray-500 mt-1">Manage your marketing campaigns</p></div>
           <DialogTrigger asChild>
             <Button className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white"><Plus size={16} /> Create Campaign</Button>
           </DialogTrigger>
-        </div>
+      </div>
 
-        <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4">
           {campaigns.length === 0 ? (
             <Card className="text-center py-20">
               <CardContent className="p-0">
@@ -145,8 +144,9 @@ export default function Campaigns() {
               </CardContent>
             </Card>
           ))}
-        </div>
+      </div>
 
+      <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="sm:max-w-[640px]">
           <DialogHeader>
             <DialogTitle>Create Campaign</DialogTitle>
@@ -174,8 +174,9 @@ export default function Campaigns() {
             <Button onClick={() => handleCreate(true)} className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white">Launch Now</Button>
           </div>
         </DialogContent>
+      </Dialog>
 
-        <Dialog open={!!selectedCampaign} onOpenChange={v => !v && setSelectedCampaign(null)}>
+      <Dialog open={!!selectedCampaign} onOpenChange={v => !v && setSelectedCampaign(null)}>
           <DialogContent className="sm:max-w-[600px]">
             {selectedCampaign && (
               <>
@@ -243,9 +244,9 @@ export default function Campaigns() {
               </>
             )}
           </DialogContent>
-        </Dialog>
+      </Dialog>
 
-        <Dialog open={!!deleteConfirm} onOpenChange={(v) => !v && setDeleteConfirm(null)}>
+      <Dialog open={!!deleteConfirm} onOpenChange={(v) => !v && setDeleteConfirm(null)}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle>Delete Campaign</DialogTitle>
@@ -258,7 +259,6 @@ export default function Campaigns() {
               <Button onClick={() => handleDelete(deleteConfirm?._id)} className="bg-red-500 hover:bg-red-600 text-white">Delete</Button>
             </div>
           </DialogContent>
-        </Dialog>
       </Dialog>
     </div>
   );
