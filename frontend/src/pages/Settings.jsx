@@ -17,12 +17,6 @@ export default function Settings() {
     aiModel: 'default',
     scanSchedule: 'daily_6am',
     autoApprove: false,
-    telegramToken: '',
-    telegramChatId: '',
-    notifTelegram: true,
-    notifCampaignComplete: true,
-    notifOpportunities: true,
-    notifWeeklyDigest: false,
   });
 
   useEffect(() => {
@@ -32,12 +26,6 @@ export default function Settings() {
   const handleSave = async () => {
     try {
       await api.put('/api/settings', settings);
-    } catch (e) {}
-  };
-
-  const handleTestTelegram = async () => {
-    try {
-      await api.post('/api/settings/test-telegram', { token: settings.telegramToken, chatId: settings.telegramChatId });
     } catch (e) {}
   };
 
@@ -81,23 +69,6 @@ export default function Settings() {
 
           <Separator className="my-6" />
 
-          <CardTitle className="mb-4">Notifications</CardTitle>
-          <div className="space-y-4">
-            {[
-              { label: 'Telegram Bot Notifications', desc: 'Receive proposal alerts via Telegram', key: 'notifTelegram' },
-              { label: 'Campaign Completion Alerts', desc: 'Notify when campaigns finish sending', key: 'notifCampaignComplete' },
-              { label: 'AI Opportunity Alerts', desc: 'Get notified when new opportunities are discovered', key: 'notifOpportunities' },
-              { label: 'Weekly Digest Email', desc: 'Receive a weekly performance summary', key: 'notifWeeklyDigest' },
-            ].map(n => (
-              <div key={n.key} className="flex items-center justify-between">
-                <div><p className="text-sm font-medium text-gray-900">{n.label}</p><p className="text-xs text-gray-500">{n.desc}</p></div>
-                <Switch checked={settings[n.key]} onCheckedChange={(v) => setSettings({...settings, [n.key]: v})} />
-              </div>
-            ))}
-          </div>
-
-          <Separator className="my-6" />
-
           <CardTitle className="mb-4">AI Configuration</CardTitle>
           <div className="space-y-4">
             <div>
@@ -124,21 +95,6 @@ export default function Settings() {
               <div><p className="text-sm font-medium text-gray-900">Auto-approve Low Risk Proposals</p><p className="text-xs text-gray-500">Auto-approve proposals with confidence score &gt; 95%</p></div>
               <Switch checked={settings.autoApprove} onCheckedChange={(v) => setSettings({...settings, autoApprove: v})} />
             </div>
-          </div>
-
-          <Separator className="my-6" />
-
-          <CardTitle className="mb-4">Telegram Bot</CardTitle>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-gray-600 block mb-1">Bot Token</Label>
-              <Input type="password" value={settings.telegramToken} onChange={e => setSettings({...settings, telegramToken: e.target.value})} />
-            </div>
-            <div>
-              <Label className="text-gray-600 block mb-1">Chat ID</Label>
-              <Input value={settings.telegramChatId} onChange={e => setSettings({...settings, telegramChatId: e.target.value})} />
-            </div>
-            <Button variant="outline" onClick={handleTestTelegram}>Test Connection</Button>
           </div>
 
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex justify-end gap-3 -mx-6 -mb-6 mt-6">
