@@ -19,8 +19,8 @@ export default function Login() {
     try {
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: window.location.origin,
-        redirectUrlComplete: window.location.origin,
+        redirectUrl: `${window.location.origin}/login`,
+        redirectUrlComplete: '/',
       });
     } catch (err) {
       setError(err.errors?.[0]?.message || 'Google sign in failed');
