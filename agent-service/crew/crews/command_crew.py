@@ -25,7 +25,7 @@ class CommandCrew:
                 f"User request: \"{user_message}\"\n\n"
                 "Decide whether to answer directly or to use one or more tools. "
                 "If you need ids to act, list/search first. For any mutating action, the "
-                "corresponding tool will queue it for human approval — call the tool with "
+                "corresponding tool will prepare it for human approval — call the tool with "
                 "the right parameters and the system will handle the rest. After tool use, "
                 "write a short, clear final answer for the user. Do not output JSON or "
                 "markdown code fences in your final answer."

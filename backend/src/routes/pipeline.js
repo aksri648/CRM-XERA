@@ -27,8 +27,6 @@ router.get('/status', async (req, res, next) => {
 
     res.json({
       active_campaigns,
-      queue_pending: 0,
-      workers_processing: 0,
       total_sent: s.total_sent || 0,
       total_delivered: s.total_delivered || 0,
       total_opened: s.total_opened || 0,

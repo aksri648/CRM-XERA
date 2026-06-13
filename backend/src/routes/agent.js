@@ -211,7 +211,7 @@ router.post('/execute', async (req, res) => {
 router.get('/system-status', async (req, res, next) => {
   try {
     const active_campaigns = await Campaign.countDocuments({ status: 'running' });
-    res.json({ active_campaigns, queue_depth: 0, worker_health: 'healthy' });
+    res.json({ active_campaigns });
   } catch (err) { next(err); }
 });
 

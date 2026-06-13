@@ -137,7 +137,7 @@ xeno-crm/
 │   ├── src/
 │   │   ├── index.js
 │   │   ├── simulator.js               # weighted outcome engine
-│   │   └── queue.js                   # in-memory async queue
+│   │   └── index.js                  # request handler + delivery simulation
 │   ├── package.json
 │   └── Dockerfile
 │
@@ -593,9 +593,9 @@ Recharts `FunnelChart` or `BarChart` showing aggregate totals across all campaig
 
 **Pipeline Status Bar** (`grid grid-cols-8 gap-3 bg-white rounded-xl border p-4`):
 ```
-🚀          📦          ⚙️           ✉️           ☑️           👁           👆          💰
-Campaign    Queue       Worker       Sent         Delivered    Opened       Clicked     Converted
-4 Active    12 Pending  3 Processing 45,678       44,170       27,562       8,832       1,855
+🚀                                        ✉️           ☑️           👁           👆          💰
+Campaign                                  Sent         Delivered    Opened       Clicked     Converted
+4 Active                                  45,678       44,170       27,562       8,832       1,855
 ```
 - Fetched from `GET /api/pipeline/status`
 - Auto-refreshes every 5s via `setInterval`
@@ -609,15 +609,15 @@ Each event row:
 ```
 ○  10:32:15 AM
    Campaign Dispatched                              [Event]
-   Summer Sale → WhatsApp Queue
+   Summer Sale → WhatsApp Channel
 ```
 - Timeline line: left vertical dashed border
 - Badge colors: Event=gray | OK=green | Retry=orange | Failed=red
 - Auto-polls every 5s
 
-**Right: Queue Depth panel**:
-- Large teal number (total in queue)
-- "Messages in Queue" label
+**Right: Delivery Stats panel**:
+- Large teal number (total delivered)
+- "Delivery Stats" label
 - Row: Processing (blue large) | Pending (yellow large) | Retry (red large)
 
 ---
@@ -907,16 +907,16 @@ const CampaignSchema = new mongoose.Schema({
 
 #### Communication.js
 ```js
-// STATUS FSM: queued → sent → delivered → failed (terminal)
+// STATUS FSM: pending → sent → delivered → failed (terminal)
 //                                        → opened → read → clicked → converted (terminal)
-const STATUS_ORDER = ['queued', 'sent', 'delivered', 'opened', 'read', 'clicked', 'converted', 'failed'];
+const STATUS_ORDER = ['pending', 'sent', 'delivered', 'opened', 'read', 'clicked', 'converted', 'failed'];
 
 const CommunicationSchema = new mongoose.Schema({
   campaignId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Campaign', required: true, index: true },
   customerId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
   message:     { type: String, required: true },  // personalized (name substituted)
   channel:     { type: String, required: true },
-  status:      { type: String, enum: STATUS_ORDER, default: 'queued', index: true },
+  status:      { type: String, enum: STATUS_ORDER, default: 'pending', index: true },
   sentAt:      { type: Date },
   updatedAt:   { type: Date, default: Date.now },
 });
@@ -965,7 +965,7 @@ const AgentProposalSchema = new mongoose.Schema({
 #### PipelineEvent.js
 ```js
 const PipelineEventSchema = new mongoose.Schema({
-  type:        { type: String },   // "campaign_dispatched" | "worker_picked" | "callback_received" | "retry" | "failed"
+  type:        { type: String },   // "campaign_dispatched" | "callback_received" | "failed"
   title:       { type: String },
   description: { type: String },
   badge:       { type: String, enum: ['Event', 'OK', 'Retry', 'Failed'] },
@@ -1082,7 +1082,7 @@ POST   /api/campaigns/:id/launch
   Auth: required
   — 1. Set status to "running", set launchedAt
   — 2. Fetch all customers in segment
-  — 3. For each customer: create Communication doc (status: "queued")
+   — 3. For each customer: create Communication doc (status: "pending")
   — 4. Call campaignLauncher.js service → POST to channel service /send for each
   — 5. Log PipelineEvent: "campaign_dispatched"
   — 6. Return { dispatched: N, campaignId }
@@ -1116,7 +1116,7 @@ POST   /api/receipts/callback
   1. Find Communication by communication_id
   2. If not found: return 404 (log warning, do not throw)
   3. Check STATUS FSM: can_transition(current_status, event)
-     — STATUS_ORDER = ['queued','sent','delivered','opened','read','clicked','converted','failed']
+      — STATUS_ORDER = ['pending','sent','delivered','opened','read','clicked','converted','failed']
      — 'failed' is terminal: no transitions out
      — Only forward transitions allowed (index must increase)
      — Duplicate same-status event: return 200 silently (idempotent)
@@ -1235,8 +1235,6 @@ GET    /api/pipeline/status
   Auth: required
   Response: {
     active_campaigns:   Number,
-    queue_pending:      Number,
-    workers_processing: Number,
     total_sent:         Number,
     total_delivered:    Number,
     total_opened:       Number,
@@ -1338,7 +1336,7 @@ export async function launchCampaign(campaign, customers) {
       customerId: customer._id,
       message,
       channel: campaign.channel,
-      status: 'queued',
+      status: 'pending',
     });
     
     communications.push({ comm, customer });
@@ -1367,7 +1365,7 @@ export async function launchCampaign(campaign, customers) {
   await pipelineLogger.log({
     type: 'campaign_dispatched',
     title: 'Campaign Dispatched',
-    description: `${campaign.name} → ${campaign.channel} Queue`,
+    description: `${campaign.name} → ${campaign.channel} Channel`,
     badge: 'Event',
     campaignId: campaign._id,
   });
@@ -1463,7 +1461,7 @@ Intent categories:
 - "launch_request": User wants to create and/or launch a campaign
 - "insight_request": User wants analytics or performance data
 - "opportunity_scan": User wants AI to find marketing opportunities
-- "system_status": User asks about system health or queue
+- "system_status": User asks about system health
 - "general": Everything else (greetings, unrelated questions)
 
 Extract parameters when present:
@@ -1945,15 +1943,12 @@ This is a **MOCK** service. It does NOT deliver real messages. It simulates the 
 ### 9.1 `src/index.js`
 ```js
 import express from 'express';
-import { queue, processQueue } from './queue.js';
+import { processJob } from './simulator.js';
 
 const app = express();
 app.use(express.json());
 
-// Start queue processor
-processQueue();
-
-// POST /send — accepts message job, queues it
+// POST /send — accepts message job and processes it directly
 app.post('/send', (req, res) => {
   const {
     communication_id, campaign_id, customer_id,
@@ -1964,7 +1959,7 @@ app.post('/send', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  queue.push({
+  const job = {
     id:               crypto.randomUUID(),
     communication_id,
     campaign_id,
@@ -1972,13 +1967,14 @@ app.post('/send', (req, res) => {
     channel,
     message,
     callback_url,
-    queued_at:        new Date().toISOString(),
-  });
+  };
+
+  // Process directly (fire-and-forget)
+  processJob(job).catch(console.error);
 
   return res.status(202).json({
     accepted: true,
-    job_id: queue[queue.length - 1].id,
-    queue_depth: queue.length,
+    job_id: job.id,
   });
 });
 
@@ -1986,7 +1982,6 @@ app.post('/send', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    queue_depth: queue.length,
     processed_total: global.processedCount || 0,
   });
 });
@@ -2022,7 +2017,7 @@ export const ENGAGEMENT_FUNNEL = {
 
 // Delays in milliseconds (realistic simulation)
 export const DELAYS = {
-  queued_to_sent:       [500, 1500],
+  pending_to_sent:       [500, 1500],
   sent_to_delivered:    [1000, 4000],
   delivered_to_opened:  [3000, 15000],
   opened_to_read:       [2000, 8000],
@@ -2039,11 +2034,10 @@ export function randomBool(probability) {
 }
 ```
 
-### 9.3 `src/queue.js`
+### 9.3 `src/simulator.js` (continued — processJob)
 ```js
 import { DELIVERY_RATES, ENGAGEMENT_FUNNEL, DELAYS, randomDelay, randomBool } from './simulator.js';
 
-export const queue = [];
 global.processedCount = 0;
 global.stats = {
   total_sent: 0,
@@ -2084,13 +2078,14 @@ function buildPayload(job, event) {
 }
 
 // Processes a single job through the full lifecycle
-async function processJob(job) {
+export async function processJob(job) {
   const { callback_url, channel } = job;
 
   // 1. SENT
-  await new Promise(r => setTimeout(r, randomDelay(...DELAYS.queued_to_sent)));
+  await new Promise(r => setTimeout(r, randomDelay(...DELAYS.pending_to_sent)));
   await sendCallback(callback_url, buildPayload(job, 'sent'));
   global.stats.total_sent++;
+  global.processedCount++;
 
   // 2. DELIVERED or FAILED
   await new Promise(r => setTimeout(r, randomDelay(...DELAYS.sent_to_delivered)));
@@ -2128,22 +2123,9 @@ async function processJob(job) {
   await sendCallback(callback_url, buildPayload(job, 'converted'));
   global.stats.outcomes.converted++;
 }
-
-// Continuous queue processor (runs forever)
-export async function processQueue() {
-  while (true) {
-    if (queue.length > 0) {
-      const job = queue.shift();
-      global.processedCount++;
-      // Process concurrently (up to 10 at a time)
-      processJob(job).catch(console.error);
-    }
-    await new Promise(r => setTimeout(r, 50));  // poll every 50ms
-  }
-}
 ```
 
-**Key design note**: `processJob` runs concurrently via fire-and-forget. The queue processor continues pulling new jobs while previous jobs are awaiting their async delays. This simulates real parallel message delivery.
+**Key design note**: `processJob` runs concurrently via fire-and-forget. Each incoming request triggers immediate processing with async delays simulating realistic message delivery timing. This simulates real parallel message delivery without needing a queue infrastructure.
 
 ---
 
@@ -2324,7 +2306,7 @@ volumes:
 1. **MongoDB vs PostgreSQL**: MongoDB chosen for flexible schema — campaign stats evolve, filter_rules are arbitrary JSON. Tradeoff: no JOIN optimization, mitigated by Mongoose populate and compound indexes.
 2. **CrewAI agents vs LangGraph**: CrewAI gives opinionated multi-agent orchestration with role/goal/backstory structure. LangGraph offers more control over state flow. CrewAI was chosen for clear agent specialization and faster iteration.
 3. **All agents return structured JSON**: Makes frontend rendering deterministic. Tradeoff: agents need explicit instruction to not add prose outside JSON — mitigated by system prompts.
-4. **In-memory queue in channel service**: Simplest implementation. At production scale, replace with BullMQ + Redis for persistence, retries, and monitoring. Explicit tradeoff for this scope.
+4. **Direct processing in channel service**: Each request is processed immediately via fire-and-forget. At production scale, replace with BullMQ + Redis for persistence, retries, and monitoring. Explicit tradeoff for this scope.
 5. **SSE over WebSockets for agent streaming**: SSE is unidirectional (server→client) which is all we need for agent responses. Simpler to implement and proxy than WebSockets.
 6. **Idempotent receipt endpoint (no auth)**: Receipt endpoint has no auth because it's called machine-to-machine. In production, add HMAC signature verification on callbacks.
 7. **Single MongoDB Atlas cluster**: Simplest deployment path. In production, read replicas for analytics queries.
@@ -2339,7 +2321,7 @@ Execute strictly in this sequence:
 Step 1:  mongodb running (docker-compose up mongodb)
 Step 2:  backend/ — models + all routes (no agent route yet)
 Step 3:  backend/scripts/seed.js — seed all data, verify in MongoDB Compass
-Step 4:  channel-service/ — queue + simulator + /send + callbacks
+Step 4:  channel-service/ — simulator + direct processing + /send + callbacks
 Step 5:  Test callback loop: POST /send → watch callbacks hit /api/receipts/callback → verify DB updates
 Step 6:  agent-service/ — llm_config + all 7 agents + 3 crews + FastAPI endpoints
 Step 7:  Test agent service in isolation: POST /crew/chat with sample message
@@ -2374,7 +2356,7 @@ Step 24: Record walkthrough video
 - [ ] `AgentResponseRenderer.jsx` renders all 6 card types correctly
 - [ ] Seed data shows 10,000 customers with realistic stats
 - [ ] Agent Proposals page loads from DB (zero empty states in demo)
-- [ ] Pipeline Monitor shows live queue stats updating every 5s
+- [ ] Pipeline Monitor shows live delivery stats updating every 5s
 - [ ] Campaign funnel chart fills in real-time as callbacks arrive
 - [ ] CORS configured for all production domains
 - [ ] README documents all tradeoffs from §13

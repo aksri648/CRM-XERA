@@ -12,7 +12,7 @@ import AgentProposal from '../src/models/AgentProposal.js';
 import Settings from '../src/models/Settings.js';
 import PipelineEvent from '../src/models/PipelineEvent.js';
 
-faker.locale = 'en_IN';
+
 
 const INDIAN_CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Jaipur', 'Ahmedabad', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane'];
 const INDIAN_NAMES = ['Aarav', 'Vivaan', 'Aditya', 'Vihaan', 'Arjun', 'Sai', 'Ishaan', 'Ayaan', 'Dhruv', 'Kabir', 'Ananya', 'Diya', 'Myra', 'Aaradhya', 'Anvi', 'Ira', 'Sara', 'Aisha', 'Navya', 'Kavya'];

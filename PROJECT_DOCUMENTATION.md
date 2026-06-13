@@ -66,7 +66,7 @@ xeno-crm/
 ├── channel-service/           # Node.js + Express (Mock)
 │   └── src/
 │       ├── simulator.js       # Weighted outcome engine
-│       └── queue.js           # In-memory async queue
+│       └── index.js            # Request handler + delivery simulation
 │
 ├── docker-compose.yml         # 5 services
 └── .env.example               # Environment variables
@@ -209,7 +209,7 @@ docker-compose up --build
 8. **Campaign Detail** — KPIs, funnel chart (Recharts), communications table
 9. **A/B Tests** — Winner detection, variant comparison
 10. **Analytics** — Channel breakdown, top campaigns, aggregate funnel
-11. **Pipeline Monitor** — Real-time queue depth, event timeline, auto-refresh
+11. **Pipeline Monitor** — Real-time delivery stats, event timeline, auto-refresh
 12. **AI Command Centre** — Floating modal with system status + chat
 13. **Settings** — Platform config, notifications, AI, Telegram
 
@@ -225,7 +225,7 @@ docker-compose up --build
 ### Channel Service (Mock)
 - Simulates WhatsApp/SMS/Email/RCS delivery
 - Weighted probabilistic outcomes per channel
-- Full lifecycle simulation: queued → sent → delivered → opened → read → clicked → converted
+- Full lifecycle simulation: pending → sent → delivered → opened → read → clicked → converted
 - Callback to backend receipt endpoint with exponential backoff retry
 
 ## API Endpoints
@@ -374,7 +374,7 @@ node scripts/seed.js
 1. **MongoDB vs PostgreSQL**: MongoDB chosen for flexible schema. Tradeoff: no JOIN optimization, mitigated by Mongoose populate and compound indexes.
 2. **CrewAI agents vs LangGraph**: CrewAI gives opinionated multi-agent orchestration. LangGraph offers more state control. CrewAI chosen for clear specialization and faster iteration.
 3. **All agents return structured JSON**: Makes frontend rendering deterministic. Tradeoff: agents need explicit instruction to avoid prose outside JSON.
-4. **In-memory queue in channel service**: Simplest implementation. Replace with BullMQ + Redis for production.
+4. **Direct job processing in channel service**: Jobs are processed immediately on receipt. Replace with BullMQ + Redis for persistence at scale.
 5. **SSE over WebSockets**: SSE is unidirectional (server→client) which is all we need. Simpler to implement and proxy.
 6. **Idempotent receipt endpoint (no auth)**: Machine-to-machine. Add HMAC signature verification for production.
 7. **Single MongoDB Atlas cluster**: Simplest deployment. Add read replicas for analytics at scale.

@@ -384,16 +384,12 @@ export default function AICommandCentre({ onClose }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 p-4 bg-gray-50 border-b border-gray-100">
+        <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 border-b border-gray-100">
           <div className="text-center">
-            <p className="text-xs text-gray-500">WORKER</p>
+            <p className="text-xs text-gray-500">CHANNEL HEALTH</p>
             <p className={`text-sm font-bold ${sysStatus?.channel_service_health === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
               {sysStatus?.channel_service_health === 'ok' ? 'Healthy' : 'Degraded'}
             </p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-500">QUEUE</p>
-            <p className="text-sm font-bold text-gray-900">{formatNumber(sysStatus?.queue_pending || 0)}</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-500">ACTIVE RUNS</p>

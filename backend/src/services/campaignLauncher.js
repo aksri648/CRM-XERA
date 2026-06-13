@@ -18,7 +18,7 @@ export async function launchCampaign(campaign, customers) {
       .replace('{name}', customer.name)
       .replace('{brand}', brandName),
     channel: campaign.channel,
-    status: 'queued',
+    status: 'pending',
   }));
 
   const created = await Communication.insertMany(commDocs);
@@ -61,7 +61,7 @@ export async function launchCampaign(campaign, customers) {
   await PipelineEvent.create({
     type: 'campaign_dispatched',
     title: 'Campaign Dispatched',
-    description: `${campaign.name} → ${campaign.channel} Queue`,
+    description: `${campaign.name} → ${campaign.channel} Dispatched`,
     badge: 'Event',
     campaignId: campaign._id,
   });
