@@ -240,9 +240,9 @@ export default function Customers() {
                         {getInitials(c.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-semibold text-gray-900">{c.name}</p>
-                      <p className="text-sm text-gray-500">{c.email}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 break-words">{c.name}</p>
+                      <p className="text-sm text-gray-500 break-all">{c.email}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
