@@ -131,8 +131,8 @@ function ToolResultCard({ tool, data }) {
   if (tool === 'get_pipeline_status' || tool === 'get_analytics_overview' || tool === 'get_channels_analytics' || tool === 'get_funnel' || tool === 'get_settings' || tool === 'get_customer_distributions') {
     return <KeyValueCard data={data} />;
   }
-  if (tool === 'get_customer' || tool === 'get_campaign' || tool === 'get_campaign_stats' || tool === 'get_segment' || tool === 'get_proposal' || tool === 'get_ab_test') {
-    return <KeyValueCard data={data?.campaign || data?.customer || data?.segment || data?.proposal || data?.ab_test || data?.stats || data} />;
+  if (tool === 'get_customer' || tool === 'get_campaign' || tool === 'get_campaign_stats' || tool === 'get_segment' || tool === 'get_proposal') {
+    return <KeyValueCard data={data?.campaign || data?.customer || data?.segment || data?.proposal || data?.stats || data} />;
   }
   return <RawJsonCard data={data} />;
 }

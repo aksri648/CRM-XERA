@@ -6,7 +6,6 @@ import Order from '../models/Order.js';
 import Segment from '../models/Segment.js';
 import Campaign from '../models/Campaign.js';
 import Communication from '../models/Communication.js';
-import ABTest from '../models/ABTest.js';
 import Opportunity from '../models/Opportunity.js';
 import AgentProposal from '../models/AgentProposal.js';
 import Settings from '../models/Settings.js';
@@ -130,9 +129,6 @@ router.post('/seed', async (req, res, next) => {
       launchedAt: new Date(Date.now() - 30 * 86400000),
       completedAt: new Date(Date.now() - 25 * 86400000),
     });
-
-    await ABTest.create({ userId, name: 'Summer Sale Offer Test', status: 'completed', winnerCampaignId: campaign._id });
-    await ABTest.create({ userId, name: 'Re-engagement Campaign Test', status: 'draft' });
 
     const opps = [
       { title: 'Reactivate High-Value Lapsing Customers', description: '12% of top-tier customers haven\'t purchased in 60+ days', audienceDescription: 'Customers with LTV > ₹10,000, inactive 60+ days', expectedRevenue: 450000, aiReasoning: 'Historical data shows 18% reactivation rate for this segment' },

@@ -5,7 +5,6 @@ import Segment from '../models/Segment.js';
 import Customer from '../models/Customer.js';
 import Opportunity from '../models/Opportunity.js';
 import AgentProposal from '../models/AgentProposal.js';
-import ABTest from '../models/ABTest.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -126,9 +125,6 @@ const TOOL_DISPATCH = {
   reject_proposal:  (p) => ({ method: 'PATCH', path: `/api/proposals/${p.id}/reject` }),
   update_proposal:  (p) => ({ method: 'PATCH', path: `/api/proposals/${p.id}`, body: p.patch || {} }),
 
-  create_ab_test:      (p) => ({ method: 'POST',  path: '/api/ab-tests', body: p }),
-  set_ab_test_winner:  (p) => ({ method: 'PATCH', path: `/api/ab-tests/${p.id}/winner`, body: { winner: p.winner } }),
-
   update_settings: (p) => ({ method: 'PUT', path: '/api/settings', body: p }),
 };
 
@@ -145,8 +141,6 @@ const ID_FIELD_RESOLVERS = {
   approve_proposal:  [{ field: 'id', Model: AgentProposal }],
   reject_proposal:   [{ field: 'id', Model: AgentProposal }],
   update_proposal:   [{ field: 'id', Model: AgentProposal }],
-  create_ab_test:    [{ field: 'segmentId', Model: Segment }],
-  set_ab_test_winner:[{ field: 'id', Model: ABTest }],
 };
 
 const NAME_FIELDS = new Map([
@@ -155,7 +149,6 @@ const NAME_FIELDS = new Map([
   [Customer, 'name'],
   [Opportunity, 'title'],
   [AgentProposal, 'title'],
-  [ABTest, 'name'],
 ]);
 
 const isObjectId = (v) => typeof v === 'string' && /^[0-9a-fA-F]{24}$/.test(v) && mongoose.Types.ObjectId.isValid(v);

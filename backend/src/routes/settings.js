@@ -26,11 +26,4 @@ router.put('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/test-telegram', async (req, res, next) => {
-  try {
-    const { token, chatId } = req.body;
-    res.json({ success: true, message: 'Test message sent (simulated)' });
-  } catch (err) { next(err); }
-});
-
 export default router;

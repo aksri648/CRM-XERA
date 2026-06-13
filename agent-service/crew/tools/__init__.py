@@ -7,7 +7,6 @@ from .proposals import list_proposals, get_proposal, approve_proposal, reject_pr
 from .analytics import get_analytics_overview, get_channels_analytics, get_top_campaigns, get_funnel
 from .pipeline import get_pipeline_status
 from .settings import get_settings, update_settings
-from .ab_tests import list_ab_tests, get_ab_test, create_ab_test, set_ab_test_winner
 from .orders import list_orders
 
 ALL_TOOLS = [
@@ -20,6 +19,5 @@ ALL_TOOLS = [
     get_analytics_overview, get_channels_analytics, get_top_campaigns, get_funnel,
     get_pipeline_status,
     get_settings, update_settings,
-    list_ab_tests, get_ab_test, create_ab_test, set_ab_test_winner,
     list_orders,
 ]

@@ -8,7 +8,6 @@ const CampaignSchema = new mongoose.Schema({
   messageTemplate: { type: String, required: true },
   status:          { type: String, enum: ['draft', 'running', 'stopped', 'completed'], default: 'draft' },
   createdBy:       { type: String, enum: ['human', 'agent'], default: 'human' },
-  abTestId:        { type: mongoose.Schema.Types.ObjectId, ref: 'ABTest', default: null },
   stats: {
     sent:       { type: Number, default: 0 },
     delivered:  { type: Number, default: 0 },

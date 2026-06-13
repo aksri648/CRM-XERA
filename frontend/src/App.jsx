@@ -11,7 +11,6 @@ import Customers from './pages/Customers';
 import Segments from './pages/Segments';
 import Campaigns from './pages/Campaigns';
 import CampaignDetail from './pages/CampaignDetail';
-import ABTests from './pages/ABTests';
 import Analytics from './pages/Analytics';
 import PipelineMonitor from './pages/PipelineMonitor';
 import Settings from './pages/Settings';
@@ -32,7 +31,6 @@ export default function App() {
           <Route path="segments" element={<Segments />} />
           <Route path="campaigns" element={<Campaigns />} />
           <Route path="campaigns/:id" element={<CampaignDetail />} />
-          <Route path="ab-tests" element={<ABTests />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="pipeline" element={<PipelineMonitor />} />
           <Route path="settings" element={<Settings />} />
