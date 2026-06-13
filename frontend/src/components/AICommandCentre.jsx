@@ -151,7 +151,7 @@ function ToolCallBreadcrumb({ tool, params }) {
 }
 
 function PendingActionCard({ action, onApprove, onReject }) {
-  const { tool, params, description, status, result, error } = action;
+  const { tool, params, description, status, error } = action;
   const isPending = !status || status === 'pending';
   const paramRows = Object.entries(params || {}).filter(([k]) => k !== 'patch' && k !== 'filterRules');
   return (
@@ -179,11 +179,6 @@ function PendingActionCard({ action, onApprove, onReject }) {
           <button onClick={onReject} className="flex items-center gap-1 border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-semibold rounded-md px-3 py-1.5">
             <XCircle size={12} /> Reject
           </button>
-        </div>
-      )}
-      {status === 'approved' && result && (
-        <div className="mt-2 text-[11px] text-green-800 bg-white/70 rounded px-2 py-1">
-          Result: <code className="font-mono">{JSON.stringify(result).slice(0, 200)}</code>
         </div>
       )}
       {error && (
