@@ -315,6 +315,17 @@ export default function AICommandCentre({ onClose }) {
         });
         continue;
       }
+
+      if (ev.type === 'suggestions') {
+        setMessages(prev => {
+          const { msgs, idx } = ensureAssistantMessage(prev);
+          const updated = [...msgs];
+          const cur = updated[idx];
+          updated[idx] = { ...cur, suggestions: Array.isArray(ev.items) ? ev.items : [] };
+          return updated;
+        });
+        continue;
+      }
     }
   }, [events]);
 
@@ -427,6 +438,19 @@ export default function AICommandCentre({ onClose }) {
                     onReject={() => handleReject(i, j)}
                   />
                 ))}
+                {msg.role === 'assistant' && msg.suggestions?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {msg.suggestions.map((s, k) => (
+                      <button
+                        key={`sg-${k}`}
+                        onClick={() => handleSuggestion(s)}
+                        className="text-[11px] border border-gray-300 rounded-full px-3 py-1 text-gray-600 bg-white hover:border-[#0fd4b4] hover:text-[#0fd4b4] transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

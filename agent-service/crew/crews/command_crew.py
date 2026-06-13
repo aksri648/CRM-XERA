@@ -1,4 +1,6 @@
 import os
+import json
+import re
 from crewai import Crew, Process, Task
 from crew.llm_config import get_llm
 from crew.agents.command_judge import create_command_agent
@@ -61,6 +63,9 @@ class CommandCrew:
                 'params': pa['params'],
                 'description': pa.get('description', pa['tool']),
             })
+        suggestions = self._suggest_followups(user_message, final_text)
+        if suggestions:
+            events.append({'type': 'suggestions', 'items': suggestions})
         events.append({'type': 'done'})
         return events
 
@@ -69,3 +74,34 @@ class CommandCrew:
             return f"I received: {fallback}"
         raw = getattr(result, 'raw', None) or getattr(result, 'output', None) or str(result)
         return (raw or '').strip() or f"I received: {fallback}"
+
+    def _suggest_followups(self, user_message: str, answer: str) -> list[str]:
+        prompt = (
+            "You are suggesting 3 short follow-up prompts a user might send next to a CRM "
+            "assistant that can search customers, campaigns, segments, opportunities, "
+            "analytics, and propose write actions (create/update/delete campaigns, segments, "
+            "customers, settings).\n\n"
+            f"User asked: {user_message}\n"
+            f"Assistant answered: {answer}\n\n"
+            "Return ONLY a JSON array of 3 short prompt strings (each under 60 chars), no "
+            "commentary, no markdown. Example: "
+            '["Show me the funnel", "Top campaigns this month", "Stop the running campaign"]'
+        )
+        try:
+            raw = self.llm.call([{'role': 'user', 'content': prompt}])
+        except Exception:
+            return []
+        return self._parse_suggestions(raw)
+
+    def _parse_suggestions(self, raw: str) -> list[str]:
+        if not raw:
+            return []
+        match = re.search(r'\[.*?\]', raw, re.DOTALL)
+        if not match:
+            return []
+        try:
+            items = json.loads(match.group(0))
+        except Exception:
+            return []
+        return [str(x).strip() for x in items if isinstance(x, (str, int, float)) and str(x).strip()][:4]
+
