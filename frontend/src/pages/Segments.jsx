@@ -76,6 +76,13 @@ export default function Segments() {
     setSegmentName(`Copy: ${seg.name}`);
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/api/segments/${id}`);
+      setManualSegments(prev => prev.filter(s => s._id !== id));
+    } catch (e) {}
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -136,7 +143,7 @@ export default function Segments() {
                     <td className="px-4 py-3 text-gray-500">{new Date(s.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
                       <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600 px-1"><Eye size={16} /></Button>
-                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500 px-1"><Trash2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(s._id)} className="text-gray-400 hover:text-red-500 px-1"><Trash2 size={16} /></Button>
                     </td>
                   </tr>
                 ))}
