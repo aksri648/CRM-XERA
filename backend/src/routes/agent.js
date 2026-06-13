@@ -1,6 +1,11 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import Campaign from '../models/Campaign.js';
 import Segment from '../models/Segment.js';
+import Customer from '../models/Customer.js';
+import Opportunity from '../models/Opportunity.js';
+import AgentProposal from '../models/AgentProposal.js';
+import ABTest from '../models/ABTest.js';
 
 const router = Router();
 
@@ -116,13 +121,77 @@ const TOOL_DISPATCH = {
   update_settings: (p) => ({ method: 'PUT', path: '/api/settings', body: p }),
 };
 
+// For each tool, which fields hold an entity reference and which model to resolve against
+const ID_FIELD_RESOLVERS = {
+  create_campaign:   [{ field: 'segmentId', Model: Segment }],
+  update_campaign:   [{ field: 'id', Model: Campaign }],
+  launch_campaign:   [{ field: 'id', Model: Campaign }],
+  stop_campaign:     [{ field: 'id', Model: Campaign }],
+  delete_campaign:   [{ field: 'id', Model: Campaign }],
+  delete_customer:   [{ field: 'id', Model: Customer }],
+  delete_segment:    [{ field: 'id', Model: Segment }],
+  dismiss_opportunity: [{ field: 'id', Model: Opportunity }],
+  generate_campaign_from_opportunity: [{ field: 'id', Model: Opportunity }],
+  approve_proposal:  [{ field: 'id', Model: AgentProposal }],
+  reject_proposal:   [{ field: 'id', Model: AgentProposal }],
+  update_proposal:   [{ field: 'id', Model: AgentProposal }],
+  create_ab_test:    [{ field: 'segmentId', Model: Segment }],
+  set_ab_test_winner:[{ field: 'id', Model: ABTest }],
+};
+
+const NAME_FIELDS = new Map([
+  [Campaign, 'name'],
+  [Segment, 'name'],
+  [Customer, 'name'],
+  [Opportunity, 'title'],
+  [AgentProposal, 'title'],
+  [ABTest, 'name'],
+]);
+
+const isObjectId = (v) => typeof v === 'string' && /^[0-9a-fA-F]{24}$/.test(v) && mongoose.Types.ObjectId.isValid(v);
+
+const escapeRegex = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+async function resolveByName(Model, value) {
+  if (!value || typeof value !== 'string') return null;
+  const nameField = NAME_FIELDS.get(Model) || 'name';
+  const pattern = escapeRegex(value).trim();
+  if (!pattern) return null;
+  // Exact (case-insensitive)
+  let doc = await Model.findOne({ [nameField]: { $regex: `^${pattern}$`, $options: 'i' } }).select('_id').lean();
+  if (doc) return String(doc._id);
+  // Substring fallback (handles "VIP" -> "VIP Customers")
+  doc = await Model.findOne({ [nameField]: { $regex: pattern, $options: 'i' } }).select('_id').lean();
+  return doc ? String(doc._id) : null;
+}
+
+async function resolveEntityIds(tool, params) {
+  const resolvers = ID_FIELD_RESOLVERS[tool] || [];
+  for (const { field, Model } of resolvers) {
+    const value = params[field];
+    if (!value || isObjectId(value)) continue;
+    const resolved = await resolveByName(Model, value);
+    if (!resolved) {
+      const nameField = NAME_FIELDS.get(Model) || 'name';
+      throw new Error(`No ${Model.modelName} found matching "${value}" by ${nameField}. Use the list tool to get a real ID.`);
+    }
+    params[field] = resolved;
+  }
+}
+
 router.post('/execute', async (req, res) => {
   const { tool, params } = req.body || {};
   if (!tool || !TOOL_DISPATCH[tool]) {
     return res.status(400).json({ ok: false, error: `Unknown or disallowed tool: ${tool}` });
   }
+  const resolved = { ...(params || {}) };
   try {
-    const { method, path, body } = TOOL_DISPATCH[tool](params || {});
+    await resolveEntityIds(tool, resolved);
+  } catch (err) {
+    return res.status(200).json({ ok: false, error: err.message });
+  }
+  try {
+    const { method, path, body } = TOOL_DISPATCH[tool](resolved);
     const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
     const init = { method, headers: { 'Content-Type': 'application/json' } };
     if (body !== undefined) init.body = JSON.stringify(body);
@@ -133,7 +202,7 @@ router.post('/execute', async (req, res) => {
     if (!upstream.ok) {
       return res.status(200).json({ ok: false, status: upstream.status, error: parsed?.error || text || 'Backend error' });
     }
-    res.json({ ok: true, tool, result: parsed });
+    res.json({ ok: true, tool, result: parsed, resolvedParams: resolved });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
