@@ -4,12 +4,23 @@ export function useSSE() {
   const [events, setEvents] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef(null);
+  const bufferRef = useRef([]);
+  const flushRef = useRef(null);
+
+  const flushBuffer = useCallback(() => {
+    if (bufferRef.current.length > 0) {
+      const batch = bufferRef.current.splice(0);
+      setEvents(prev => [...prev, ...batch]);
+    }
+    flushRef.current = null;
+  }, []);
 
   const startStream = useCallback(async (url, body) => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setIsStreaming(true);
     setEvents([]);
+    bufferRef.current = [];
 
     try {
       const response = await fetch(url, {
@@ -38,10 +49,14 @@ export function useSSE() {
             try {
               const event = JSON.parse(line.slice(6));
               if (event.type === 'done') {
+                flushBuffer();
                 setIsStreaming(false);
                 return;
               }
-              setEvents(prev => [...prev, event]);
+              bufferRef.current.push(event);
+              if (!flushRef.current) {
+                flushRef.current = setTimeout(flushBuffer, 50);
+              }
             } catch (e) {}
           }
         }
@@ -49,15 +64,21 @@ export function useSSE() {
     } catch (err) {
       if (err.name !== 'AbortError') console.error('SSE error:', err);
     }
+    flushBuffer();
     setIsStreaming(false);
-  }, []);
+  }, [flushBuffer]);
 
   const stopStream = useCallback(() => {
     abortRef.current?.abort();
+    if (flushRef.current) clearTimeout(flushRef.current);
     setIsStreaming(false);
   }, []);
 
-  const clearEvents = useCallback(() => setEvents([]), []);
+  const clearEvents = useCallback(() => {
+    bufferRef.current = [];
+    if (flushRef.current) clearTimeout(flushRef.current);
+    setEvents([]);
+  }, []);
 
   return { events, isStreaming, startStream, stopStream, clearEvents };
 }

@@ -28,7 +28,7 @@ router.get('/', async (req, res, next) => {
   try {
     const { status } = req.query;
     const query = status ? { status } : {};
-    const proposals = await AgentProposal.find(query).sort({ createdAt: -1 }).populate('segmentId', 'name');
+    const proposals = await AgentProposal.find(query).sort({ createdAt: -1 }).populate('segmentId', 'name').lean();
     res.json({ proposals });
   } catch (err) { next(err); }
 });
@@ -42,7 +42,7 @@ router.get('/count', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const proposal = await AgentProposal.findById(req.params.id).populate('segmentId', 'name');
+    const proposal = await AgentProposal.findById(req.params.id).populate('segmentId', 'name').lean();
     if (!proposal) return res.status(404).json({ error: 'Not found' });
     res.json({ proposal });
   } catch (err) { next(err); }

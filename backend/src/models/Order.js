@@ -8,4 +8,6 @@ const OrderSchema = new mongoose.Schema({
   orderedAt:    { type: Date, default: Date.now },
 });
 
+OrderSchema.index({ orderedAt: -1 });
+
 export default mongoose.model('Order', OrderSchema);

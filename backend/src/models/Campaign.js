@@ -23,4 +23,7 @@ const CampaignSchema = new mongoose.Schema({
   createdAt:    { type: Date, default: Date.now },
 });
 
+CampaignSchema.index({ status: 1, createdAt: -1 });
+CampaignSchema.index({ 'stats.revenue': -1 });
+
 export default mongoose.model('Campaign', CampaignSchema);

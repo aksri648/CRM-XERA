@@ -15,7 +15,8 @@ router.get('/', async (req, res, next) => {
     const campaigns = await Campaign.find(query)
       .sort(sort)
       .limit(Number(limit))
-      .populate('segmentId', 'name');
+      .populate('segmentId', 'name')
+      .lean();
     res.json({ campaigns });
   } catch (err) { next(err); }
 });
@@ -29,7 +30,7 @@ router.post('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const campaign = await Campaign.findById(req.params.id).populate('segmentId', 'name');
+    const campaign = await Campaign.findById(req.params.id).populate('segmentId', 'name').lean();
     if (!campaign) return res.status(404).json({ error: 'Not found' });
     res.json({ campaign });
   } catch (err) { next(err); }
@@ -64,7 +65,7 @@ router.post('/:id/launch', async (req, res, next) => {
 
 router.get('/:id/stats', async (req, res, next) => {
   try {
-    const campaign = await Campaign.findById(req.params.id).select('stats');
+    const campaign = await Campaign.findById(req.params.id).select('stats').lean();
     if (!campaign) return res.status(404).json({ error: 'Not found' });
     res.json({ stats: campaign.stats });
   } catch (err) { next(err); }
@@ -79,7 +80,8 @@ router.get('/:id/communications', async (req, res, next) => {
       .populate('customerId', 'name email')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
     res.json({ communications, total, page: Number(page) });
   } catch (err) { next(err); }
 });

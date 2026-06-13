@@ -40,7 +40,7 @@ router.get('/status', async (req, res, next) => {
 router.get('/events', async (req, res, next) => {
   try {
     const { limit = 50 } = req.query;
-    const events = await PipelineEvent.find().sort({ createdAt: -1 }).limit(Number(limit));
+    const events = await PipelineEvent.find().sort({ createdAt: -1 }).limit(Number(limit)).lean();
     res.json(events);
   } catch (err) { next(err); }
 });

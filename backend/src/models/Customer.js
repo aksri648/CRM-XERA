@@ -15,5 +15,9 @@ const CustomerSchema = new mongoose.Schema({
 });
 
 CustomerSchema.index({ ltv: 1, lastOrderAt: 1, city: 1 });
+CustomerSchema.index({ tags: 1 });
+CustomerSchema.index({ totalOrders: 1 });
+
+export default mongoose.model('Customer', CustomerSchema);
 
 export default mongoose.model('Customer', CustomerSchema);

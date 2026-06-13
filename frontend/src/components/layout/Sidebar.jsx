@@ -57,7 +57,9 @@ export default function Sidebar({ onOpenCommandCentre }) {
       } catch (e) {}
     };
     fetchBadges();
-    const interval = setInterval(fetchBadges, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchBadges();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

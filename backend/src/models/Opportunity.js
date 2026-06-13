@@ -10,4 +10,6 @@ const OpportunitySchema = new mongoose.Schema({
   createdAt:           { type: Date, default: Date.now },
 });
 
+OpportunitySchema.index({ status: 1, createdAt: -1 });
+
 export default mongoose.model('Opportunity', OpportunitySchema);

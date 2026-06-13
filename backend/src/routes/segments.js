@@ -73,7 +73,7 @@ router.post('/preview', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const segment = await Segment.findById(req.params.id);
+    const segment = await Segment.findById(req.params.id).lean();
     if (!segment) return res.status(404).json({ error: 'Not found' });
     res.json({ segment });
   } catch (err) { next(err); }
@@ -81,14 +81,16 @@ router.get('/:id', async (req, res, next) => {
 
 router.get('/:id/customers', async (req, res, next) => {
   try {
-    const segment = await Segment.findById(req.params.id);
+    const segment = await Segment.findById(req.params.id).lean();
     if (!segment) return res.status(404).json({ error: 'Not found' });
     const mongoQuery = buildMongoQuery(segment.filterRules, segment.logic);
     const { page = 1, limit = 20 } = req.query;
     const total = await Customer.countDocuments(mongoQuery);
     const customers = await Customer.find(mongoQuery)
+      .select('name email phone city gender tags ltv totalOrders lastOrderAt')
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
     res.json({ customers, total, page: Number(page) });
   } catch (err) { next(err); }
 });

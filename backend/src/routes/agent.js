@@ -12,13 +12,17 @@ const router = Router();
 router.post('/chat', async (req, res, next) => {
   try {
     const { session_id, message } = req.body;
-    const recentCampaigns = await Campaign.find().sort({ createdAt: -1 }).limit(5).lean();
-    const segments = await Segment.find().limit(10).lean();
+    const [recentCampaigns, segments, total_campaigns, total_segments] = await Promise.all([
+      Campaign.find().sort({ createdAt: -1 }).limit(5).select('name channel status stats createdAt').lean(),
+      Segment.find().limit(10).select('name description customerCount').lean(),
+      Campaign.countDocuments(),
+      Segment.countDocuments(),
+    ]);
     const context = {
       recent_campaigns: recentCampaigns,
       segments,
-      total_campaigns: await Campaign.countDocuments(),
-      total_segments: await Segment.countDocuments(),
+      total_campaigns,
+      total_segments,
     };
 
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';

@@ -26,7 +26,9 @@ export default function PipelineMonitor() {
       } catch (err) {}
     };
     fetch();
-    const interval = setInterval(fetch, 5000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetch();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 

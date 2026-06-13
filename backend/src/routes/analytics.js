@@ -59,7 +59,8 @@ router.get('/campaigns/top', async (req, res, next) => {
     const campaigns = await Campaign.find({ status: 'completed' })
       .sort({ 'stats.revenue': -1 })
       .limit(Number(limit))
-      .populate('segmentId', 'name');
+      .populate('segmentId', 'name')
+      .lean();
     const data = campaigns.map(c => ({
       campaign_name: c.name,
       channel: c.channel,

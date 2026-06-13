@@ -5,7 +5,7 @@ const router = Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const tests = await ABTest.find().sort({ createdAt: -1 });
+    const tests = await ABTest.find().sort({ createdAt: -1 }).lean();
     res.json({ tests });
   } catch (err) { next(err); }
 });
@@ -19,7 +19,7 @@ router.post('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const test = await ABTest.findById(req.params.id);
+    const test = await ABTest.findById(req.params.id).lean();
     if (!test) return res.status(404).json({ error: 'Not found' });
     res.json({ test });
   } catch (err) { next(err); }

@@ -11,4 +11,6 @@ const AgentProposalSchema = new mongoose.Schema({
   createdAt:       { type: Date, default: Date.now },
 });
 
+AgentProposalSchema.index({ status: 1, createdAt: -1 });
+
 export default mongoose.model('AgentProposal', AgentProposalSchema);
