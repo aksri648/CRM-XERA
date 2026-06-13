@@ -41,7 +41,13 @@ function normalizeRow(row) {
   if (!name || !email) return null;
   out.name = String(name).trim();
   out.email = String(email).trim().toLowerCase();
-  const phone = pick('phone');         if (phone !== undefined) out.phone = String(phone).trim();
+  const phone = pick('phone');
+  if (phone !== undefined) {
+    const digits = String(phone).replace(/\D/g, '');
+    let normalized = digits;
+    if (digits.length === 12 && digits.startsWith('91')) normalized = digits.slice(2);
+    if (normalized.length === 10 && /^[6-9]\d{9}$/.test(normalized)) out.phone = normalized;
+  }
   const city = pick('city');           if (city !== undefined) out.city = String(city).trim();
   const gender = pick('gender');
   if (gender !== undefined) {
@@ -284,7 +290,7 @@ export default function Customers() {
                   <Phone size={14} className="text-gray-400" />
                   <div>
                     <p className="text-[10px] text-gray-400 uppercase">Phone</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.phone || '—'}</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.phone ? selectedCustomer.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') : '—'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2.5">

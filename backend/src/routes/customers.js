@@ -6,6 +6,20 @@ import { buildMongoQuery } from '../services/segmentation.js';
 
 const router = Router();
 
+function normalizePhone(v) {
+  if (!v) return v;
+  const digits = String(v).replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 10) return digits;
+  return v;
+}
+
+function isValidPhone(v) {
+  if (!v) return true;
+  const digits = v.replace(/\D/g, '');
+  return digits.length === 10 && /^[6-9]\d{9}$/.test(digits);
+}
+
 const TAG_RULES = {
   active: { lastOrderAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
   vip: { ltv: { $gt: 10000 } },
@@ -142,6 +156,10 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
+    if (req.body.phone) req.body.phone = normalizePhone(req.body.phone);
+    if (!isValidPhone(req.body.phone)) {
+      return res.status(400).json({ error: 'Phone must be a valid 10-digit Indian number (starting with 6-9)' });
+    }
     const customer = await Customer.create(req.body);
     res.status(201).json({ customer });
   } catch (err) { next(err); }
@@ -152,15 +170,26 @@ router.post('/bulk', async (req, res, next) => {
     const { customers } = req.body;
     if (!Array.isArray(customers)) return res.status(400).json({ error: 'customers must be an array' });
     if (customers.length > 10000) return res.status(400).json({ error: 'Maximum 10000 customers per request' });
+    const normalized = customers.map(c => ({
+      ...c,
+      phone: c.phone ? normalizePhone(c.phone) : c.phone,
+    }));
+    const invalid = normalized.filter(c => c.phone && !isValidPhone(c.phone));
+    if (invalid.length > 0) {
+      return res.status(400).json({
+        error: `${invalid.length} customers have invalid phone numbers (must be 10 digits starting with 6-9)`,
+        samples: invalid.slice(0, 3).map(c => ({ name: c.name, phone: c.phone })),
+      });
+    }
     let inserted = 0, skipped = 0, errors = [];
     try {
-      const result = await Customer.insertMany(customers, { ordered: false });
+      const result = await Customer.insertMany(normalized, { ordered: false });
       inserted = result.length;
     } catch (err) {
       if (err.writeErrors) {
         inserted = err.insertedDocs.length;
         skipped = err.writeErrors.length;
-        errors = err.writeErrors.map((e, i) => ({ email: customers[e.index]?.email, error: e.errmsg }));
+        errors = err.writeErrors.map((e, i) => ({ email: normalized[e.index]?.email, error: err.writeErrors[i]?.errmsg || 'validation error' }));
       } else if (err.code === 11000) {
         skipped = 1;
       } else {

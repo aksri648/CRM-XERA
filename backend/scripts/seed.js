@@ -24,6 +24,12 @@ const PRODUCTS = [
   { name: 'Leather Wallet', category: 'accessories' }, { name: 'Handbag', category: 'accessories' },
 ];
 
+function generateIndianPhone() {
+  const first = faker.helpers.arrayElement(['6', '7', '8', '9']);
+  const rest = faker.string.numeric(9);
+  return first + rest;
+}
+
 async function seed() {
   console.log('Connecting to MongoDB...');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/xenocrm');
@@ -45,7 +51,7 @@ async function seed() {
     customers.push({
       name: `${firstName} ${lastName}`,
       email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${i}@email.com`,
-      phone: faker.phone.number(),
+      phone: generateIndianPhone(),
       city: faker.helpers.arrayElement(INDIAN_CITIES),
       gender: faker.helpers.arrayElement(['male', 'female', 'other']),
       age,
