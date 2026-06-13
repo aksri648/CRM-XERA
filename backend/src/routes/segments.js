@@ -42,6 +42,31 @@ router.post('/generate', async (req, res, next) => {
   }
 });
 
+router.post('/ai-generate', async (req, res, next) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt || !prompt.trim()) return res.status(400).json({ error: 'prompt is required' });
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace('Bearer ', '');
+
+    const response = await fetch(`${process.env.AGENT_SERVICE_URL || 'http://localhost:8001'}/api/crew/segment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ token, prompt: prompt.trim() }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      return res.status(response.status).json({ error: err });
+    }
+
+    const result = await response.json();
+    res.json({ ok: true, segments: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/', async (req, res, next) => {
   try {
     if (!req.body.name) return res.status(400).json({ error: 'name is required' });

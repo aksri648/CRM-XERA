@@ -48,6 +48,7 @@ class InsightsRequest(BaseModel):
 
 class SegmentGenerateRequest(BaseModel):
     token: str = Field(..., min_length=1)
+    prompt: str = ""
 
 
 @app.post("/crew/chat")
@@ -107,7 +108,7 @@ async def get_insights(body: InsightsRequest):
 async def generate_segments(body: SegmentGenerateRequest):
     try:
         crew = SegmentCrew()
-        result = await asyncio.to_thread(crew.run, {'token': body.token})
+        result = await asyncio.to_thread(crew.run, {'token': body.token, 'prompt': body.prompt})
         return result
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e), "segments": []})

@@ -42,6 +42,10 @@ export default function Segments() {
   const [formLogic, setFormLogic] = useState('AND');
   const [formSaving, setFormSaving] = useState(false);
 
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
+
   const fetchAiSegments = () => {
     api.get('/api/segments?created_by=agent').then(r => {
       const all = r.data.segments || r.data;
@@ -63,6 +67,19 @@ export default function Segments() {
     } catch (e) {} finally {
       setGenerating(false);
     }
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiGenerating(true);
+    try {
+      await api.post('/api/segments/ai-generate', { prompt: aiPrompt.trim() });
+      setAiOpen(false);
+      setAiPrompt('');
+      fetchManualSegments();
+      setActiveTab('manual');
+    } catch (e) {}
+    setAiGenerating(false);
   };
 
   useEffect(() => {
@@ -121,7 +138,7 @@ export default function Segments() {
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Segments</h1><p className="text-sm text-gray-500 mt-1">Create and manage audience segments</p></div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#0fd4b4] text-[#0fd4b4] hover:bg-[#0fd4b4] hover:text-white"><Sparkles size={16} /> AI Segment Builder</Button>
+          <Button variant="outline" className="border-[#0fd4b4] text-[#0fd4b4] hover:bg-[#0fd4b4] hover:text-white" onClick={() => setAiOpen(true)}><Sparkles size={16} /> AI Segment Builder</Button>
           <Button className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white" onClick={() => setCreateOpen(true)}><Plus size={16} /> Create Segment</Button>
         </div>
       </div>
@@ -223,6 +240,28 @@ export default function Segments() {
                 {formSaving ? 'Creating...' : 'Create Segment'}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI Segment Builder</DialogTitle>
+            <p className="text-sm text-gray-500">Describe the segments you want and the AI will create them for you</p>
+          </DialogHeader>
+          <textarea
+            value={aiPrompt}
+            onChange={e => setAiPrompt(e.target.value)}
+            placeholder="e.g. Create segments for customers who bought fashion items in Mumbai, and high-value customers from Delhi who haven't ordered in 3 months..."
+            rows={4}
+            className="w-full mt-2 px-3 py-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#0fd4b4]/50 focus:border-[#0fd4b4]"
+          />
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="outline" onClick={() => setAiOpen(false)}>Cancel</Button>
+            <Button onClick={handleAiGenerate} disabled={aiGenerating || !aiPrompt.trim()} className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white">
+              <Sparkles size={14} className="mr-1" /> {aiGenerating ? 'Generating...' : 'Generate Segments'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
