@@ -34,7 +34,8 @@ class ChatRequest(BaseModel):
 class CommandRequest(BaseModel):
     session_id: str = Field(..., min_length=1)
     message: str = Field(..., min_length=1)
-    token: str = Field(..., min_length=1)
+    token: str = ""
+    context: dict = {}
 
 
 class OpportunityScanRequest(BaseModel):

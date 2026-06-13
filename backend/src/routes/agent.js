@@ -90,6 +90,55 @@ router.post('/confirm', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+const TOOL_DISPATCH = {
+  create_customer: (p) => ({ method: 'POST', path: '/api/customers', body: p }),
+  delete_customer: (p) => ({ method: 'DELETE', path: `/api/customers/${p.id}` }),
+
+  create_campaign: (p) => ({ method: 'POST', path: '/api/campaigns', body: p }),
+  update_campaign: (p) => ({ method: 'PATCH', path: `/api/campaigns/${p.id}`, body: p.patch || {} }),
+  launch_campaign: (p) => ({ method: 'POST', path: `/api/campaigns/${p.id}/launch` }),
+  stop_campaign:   (p) => ({ method: 'PATCH', path: `/api/campaigns/${p.id}/stop` }),
+  delete_campaign: (p) => ({ method: 'DELETE', path: `/api/campaigns/${p.id}` }),
+
+  create_segment: (p) => ({ method: 'POST', path: '/api/segments', body: p }),
+  delete_segment: (p) => ({ method: 'DELETE', path: `/api/segments/${p.id}` }),
+
+  dismiss_opportunity:               (p) => ({ method: 'PATCH', path: `/api/opportunities/${p.id}/dismiss` }),
+  generate_campaign_from_opportunity:(p) => ({ method: 'POST',  path: `/api/opportunities/${p.id}/generate-campaign` }),
+
+  approve_proposal: (p) => ({ method: 'PATCH', path: `/api/proposals/${p.id}/approve` }),
+  reject_proposal:  (p) => ({ method: 'PATCH', path: `/api/proposals/${p.id}/reject` }),
+  update_proposal:  (p) => ({ method: 'PATCH', path: `/api/proposals/${p.id}`, body: p.patch || {} }),
+
+  create_ab_test:      (p) => ({ method: 'POST',  path: '/api/ab-tests', body: p }),
+  set_ab_test_winner:  (p) => ({ method: 'PATCH', path: `/api/ab-tests/${p.id}/winner`, body: { winner: p.winner } }),
+
+  update_settings: (p) => ({ method: 'PUT', path: '/api/settings', body: p }),
+};
+
+router.post('/execute', async (req, res) => {
+  const { tool, params } = req.body || {};
+  if (!tool || !TOOL_DISPATCH[tool]) {
+    return res.status(400).json({ ok: false, error: `Unknown or disallowed tool: ${tool}` });
+  }
+  try {
+    const { method, path, body } = TOOL_DISPATCH[tool](params || {});
+    const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
+    const init = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body !== undefined) init.body = JSON.stringify(body);
+    const upstream = await fetch(`${baseUrl}${path}`, init);
+    const text = await upstream.text();
+    let parsed;
+    try { parsed = text ? JSON.parse(text) : {}; } catch { parsed = { raw: text }; }
+    if (!upstream.ok) {
+      return res.status(200).json({ ok: false, status: upstream.status, error: parsed?.error || text || 'Backend error' });
+    }
+    res.json({ ok: true, tool, result: parsed });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 router.get('/system-status', async (req, res, next) => {
   try {
     const active_campaigns = await Campaign.countDocuments({ status: 'running' });
