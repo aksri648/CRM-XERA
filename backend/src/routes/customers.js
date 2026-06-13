@@ -1,8 +1,17 @@
 import { Router } from 'express';
 import Customer from '../models/Customer.js';
 import Order from '../models/Order.js';
+import Segment from '../models/Segment.js';
+import { buildMongoQuery } from '../services/segmentation.js';
 
 const router = Router();
+
+const TAG_RULES = {
+  active: { lastOrderAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+  vip: { ltv: { $gt: 10000 } },
+  at_risk: { $and: [{ ltv: { $gt: 2000 } }, { lastOrderAt: { $lt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000) } }] },
+  new: { createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+};
 
 router.get('/distributions', async (req, res, next) => {
   try {
@@ -98,8 +107,17 @@ router.get('/distributions', async (req, res, next) => {
 
 router.get('/', async (req, res, next) => {
   try {
-    const { search, tag, page = 1, limit = 12, sort } = req.query;
+    const { search, tag, segment: segmentId, page = 1, limit = 12, sort } = req.query;
     const query = {};
+
+    if (segmentId) {
+      const segment = await Segment.findById(segmentId).lean();
+      if (segment) {
+        const segmentQuery = buildMongoQuery(segment.filterRules, segment.logic);
+        Object.assign(query, segmentQuery);
+      }
+    }
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -107,7 +125,10 @@ router.get('/', async (req, res, next) => {
         { phone: { $regex: search, $options: 'i' } },
       ];
     }
-    if (tag) query.tags = { $in: [tag] };
+    if (tag) {
+      const tagQuery = TAG_RULES[tag];
+      if (tagQuery) Object.assign(query, tagQuery);
+    }
     const total = await Customer.countDocuments(query);
     const sortMap = { ltv: { ltv: -1 }, createdAt: { createdAt: -1 }, lastOrderAt: { lastOrderAt: -1 } };
     const sortObj = sortMap[sort] || { createdAt: -1 };

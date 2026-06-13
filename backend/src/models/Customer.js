@@ -19,5 +19,3 @@ CustomerSchema.index({ tags: 1 });
 CustomerSchema.index({ totalOrders: 1 });
 
 export default mongoose.model('Customer', CustomerSchema);
-
-export default mongoose.model('Customer', CustomerSchema);
