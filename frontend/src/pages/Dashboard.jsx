@@ -21,10 +21,17 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
       try {
+        const checkRes = await api.get('/api/setup/check');
+        if (!checkRes.data.hasData) {
+          setSeeding(true);
+          await api.post('/api/setup/seed');
+          setSeeding(false);
+        }
         const [overviewRes, campaignsRes] = await Promise.all([
           api.get('/api/analytics/overview'),
           api.get('/api/campaigns?limit=5&sort=-createdAt'),
@@ -43,6 +50,12 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Overview of your campaign engagement performance</p>
         </div>
+        {seeding && (
+          <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            Setting up your demo data...
+          </div>
+        )}
         <div className="flex gap-3">
           <Button variant="outline" size="sm">
             <Upload size={16} className="mr-2" /> Import

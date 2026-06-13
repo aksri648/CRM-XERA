@@ -12,8 +12,6 @@ import AgentProposal from '../src/models/AgentProposal.js';
 import Settings from '../src/models/Settings.js';
 import PipelineEvent from '../src/models/PipelineEvent.js';
 
-
-
 const INDIAN_CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Jaipur', 'Ahmedabad', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane'];
 const INDIAN_NAMES = ['Aarav', 'Vivaan', 'Aditya', 'Vihaan', 'Arjun', 'Sai', 'Ishaan', 'Ayaan', 'Dhruv', 'Kabir', 'Ananya', 'Diya', 'Myra', 'Aaradhya', 'Anvi', 'Ira', 'Sara', 'Aisha', 'Navya', 'Kavya'];
 const PRODUCTS = [
@@ -30,15 +28,42 @@ function generateIndianPhone() {
   return first + rest;
 }
 
+function buildMongoQuery(filterRules, logic) {
+  if (!filterRules || filterRules.length === 0) return {};
+  const conditions = filterRules.map(rule => {
+    const { field, operator, value } = rule;
+    if (field === 'last_order_days') {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - Number(value));
+      return operator === 'gt' ? { lastOrderAt: { $lt: cutoff } } : { lastOrderAt: { $gte: cutoff } };
+    }
+    const mongoOp = { gt: '$gt', lt: '$lt', eq: '$eq', gte: '$gte', lte: '$lte', contains: '$in', not_contains: '$nin' }[operator];
+    if (!mongoOp) return {};
+    const queryValue = operator === 'contains' || operator === 'not_contains' ? (Array.isArray(value) ? value : [value]) : (isNaN(value) ? value : Number(value));
+    return { [field]: { [mongoOp]: queryValue } };
+  }).filter(Boolean);
+  if (conditions.length === 0) return {};
+  return logic === 'AND' ? { $and: conditions } : { $or: conditions };
+}
+
 async function seed() {
+  const userId = process.argv[2];
+  if (!userId) {
+    console.error('Usage: node scripts/seed.js <clerk-user-id>');
+    console.error('Get your userId from the Clerk dashboard after signing up.');
+    process.exit(1);
+  }
+
+  console.log(`Seeding data for userId: ${userId}`);
   console.log('Connecting to MongoDB...');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/xenocrm');
-  console.log('Clearing existing data...');
+
+  console.log('Clearing existing data for this user...');
   await Promise.all([
-    Customer.deleteMany({}), Order.deleteMany({}), Segment.deleteMany({}),
-    Campaign.deleteMany({}), Communication.deleteMany({}), ABTest.deleteMany({}),
-    Opportunity.deleteMany({}), AgentProposal.deleteMany({}), Settings.deleteMany({}),
-    PipelineEvent.deleteMany({}),
+    Customer.deleteMany({ userId }), Order.deleteMany({ userId }), Segment.deleteMany({ userId }),
+    Campaign.deleteMany({ userId }), Communication.deleteMany({ userId }), ABTest.deleteMany({ userId }),
+    Opportunity.deleteMany({ userId }), AgentProposal.deleteMany({ userId }), Settings.deleteMany({ userId }),
+    PipelineEvent.deleteMany({ userId }),
   ]);
 
   console.log('Seeding 10,000 customers...');
@@ -47,8 +72,8 @@ async function seed() {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
     const age = faker.number.int({ min: 18, max: 65 });
-    const tags = [];
     customers.push({
+      userId,
       name: `${firstName} ${lastName}`,
       email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${i}@email.com`,
       phone: generateIndianPhone(),
@@ -71,6 +96,7 @@ async function seed() {
     const product = faker.helpers.arrayElement(PRODUCTS);
     const daysAgo = faker.number.int({ min: 0, max: 730 });
     orders.push({
+      userId,
       customerId: customer._id,
       productName: product.name,
       category: product.category,
@@ -83,6 +109,7 @@ async function seed() {
 
   console.log('Updating customer LTV and order counts...');
   const agg = await Order.aggregate([
+    { $match: { userId } },
     { $group: { _id: '$customerId', totalAmount: { $sum: '$amount' }, count: { $sum: 1 }, lastOrder: { $max: '$orderedAt' } } },
   ]);
   const bulkOps = agg.map(a => ({
@@ -91,7 +118,7 @@ async function seed() {
       update: { $set: { ltv: a.totalAmount, totalOrders: a.count, lastOrderAt: a.lastOrder } },
     },
   }));
-  await Customer.bulkWrite(bulkOps);
+  if (bulkOps.length > 0) await Customer.bulkWrite(bulkOps);
 
   console.log('Creating AI-suggested segments...');
   const aiSegments = [
@@ -102,15 +129,16 @@ async function seed() {
     { name: 'At-Risk Reactivation', description: 'High LTV customers at risk of churning', filterRules: [{ field: 'ltv', operator: 'gt', value: 2000 }, { field: 'last_order_days', operator: 'gt', value: 45 }], logic: 'AND', createdBy: 'agent' },
   ];
   for (const s of aiSegments) {
-    const count = await Customer.countDocuments(buildMongoQuery(s.filterRules, s.logic));
-    await Segment.create({ ...s, customerCount: count });
+    const count = await Customer.countDocuments({ ...buildMongoQuery(s.filterRules, s.logic), userId });
+    await Segment.create({ ...s, userId, customerCount: count });
   }
 
   console.log('Creating completed campaigns...');
   const campaign = await Campaign.create({
+    userId,
     name: 'Summer Sale 2025',
     channel: 'whatsapp',
-    messageTemplate: 'Hey {name}! ☀️ Summer sale is here with up to 50% off!',
+    messageTemplate: 'Hey {name}! Summer sale is here with up to 50% off!',
     status: 'completed',
     stats: { sent: 5000, delivered: 4600, opened: 2070, read: 1449, clicked: 434, converted: 52, revenue: 52000 },
     createdBy: 'agent',
@@ -119,15 +147,8 @@ async function seed() {
   });
 
   console.log('Creating A/B tests...');
-  await ABTest.create({
-    name: 'Summer Sale Offer Test',
-    status: 'completed',
-    winnerCampaignId: campaign._id,
-  });
-  await ABTest.create({
-    name: 'Re-engagement Campaign Test',
-    status: 'draft',
-  });
+  await ABTest.create({ userId, name: 'Summer Sale Offer Test', status: 'completed', winnerCampaignId: campaign._id });
+  await ABTest.create({ userId, name: 'Re-engagement Campaign Test', status: 'draft' });
 
   console.log('Creating opportunities...');
   const opportunities = [
@@ -138,42 +159,24 @@ async function seed() {
     { title: 'Mumbai Festival Season Campaign', description: 'Mumbai customers peak spend in Oct-Dec', audienceDescription: 'Mumbai customers, active last 90 days', expectedRevenue: 210000, aiReasoning: 'Festive season sees 3x engagement in Mumbai' },
   ];
   for (const opp of opportunities) {
-    await Opportunity.create(opp);
+    await Opportunity.create({ ...opp, userId });
   }
 
   console.log('Creating agent proposals...');
   const proposals = [
-    { title: 'VIP Win-Back Campaign', channel: 'whatsapp', messageTemplate: 'Hey {name}! 💙 We miss you. Here\'s 15% off your next purchase: COMEBACK15', confidenceScore: 0.87, aiReasoning: 'WhatsApp has highest open rate for VIP segments. Offering discount shows 2.5x conversion.' },
+    { title: 'VIP Win-Back Campaign', channel: 'whatsapp', messageTemplate: 'Hey {name}! We miss you. Here\'s 15% off your next purchase: COMEBACK15', confidenceScore: 0.87, aiReasoning: 'WhatsApp has highest open rate for VIP segments. Offering discount shows 2.5x conversion.' },
     { title: 'Festive Fashion Collection Launch', channel: 'email', messageTemplate: 'Hi {name}, our new festive collection is here! Shop the latest trends with exclusive early access.', confidenceScore: 0.91, aiReasoning: 'Email allows rich visuals for fashion. Festive campaigns drive 3x revenue in Q4.' },
     { title: 'SMS Flash Sale Alert', channel: 'sms', messageTemplate: 'FLASH SALE! 40% off everything for 24hrs only. Use code FLASH40. Shop now: bit.ly/xeno', confidenceScore: 0.75, aiReasoning: 'SMS has 95%+ delivery rate. Flash sales create urgency and drive quick conversions.' },
   ];
   for (const p of proposals) {
-    await AgentProposal.create(p);
+    await AgentProposal.create({ ...p, userId });
   }
 
   console.log('Creating settings...');
-  await Settings.create({ singleton: 'global' });
+  await Settings.create({ userId });
 
   console.log('Seeding complete!');
   process.exit(0);
-}
-
-function buildMongoQuery(filterRules, logic) {
-  if (!filterRules || filterRules.length === 0) return {};
-  const conditions = filterRules.map(rule => {
-    const { field, operator, value } = rule;
-    if (field === 'last_order_days') {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - Number(value));
-      return operator === 'gt' ? { lastOrderAt: { $lt: cutoff } } : { lastOrderAt: { $gte: cutoff } };
-    }
-    const mongoOp = { gt: '$gt', lt: '$lt', eq: '$eq', gte: '$gte', lte: '$lte', contains: '$in', not_contains: '$nin' }[operator];
-    if (!mongoOp) return {};
-    const queryValue = operator === 'contains' || operator === 'not_contains' ? (Array.isArray(value) ? value : [value]) : (isNaN(value) ? value : Number(value));
-    return { [field]: { [mongoOp]: queryValue } };
-  }).filter(Boolean);
-  if (conditions.length === 0) return {};
-  return logic === 'AND' ? { $and: conditions } : { $or: conditions };
 }
 
 seed().catch(err => { console.error(err); process.exit(1); });

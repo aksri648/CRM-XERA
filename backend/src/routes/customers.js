@@ -3,8 +3,10 @@ import Customer from '../models/Customer.js';
 import Order from '../models/Order.js';
 import Segment from '../models/Segment.js';
 import { buildMongoQuery } from '../services/segmentation.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireAuth);
 
 function normalizePhone(v) {
   if (!v) return v;
@@ -30,8 +32,10 @@ const TAG_RULES = {
 router.get('/distributions', async (req, res, next) => {
   try {
     const now = new Date();
+    const userId = req.userId;
 
     const [result] = await Customer.aggregate([
+      { $match: { userId } },
       {
         $facet: {
           total: [{ $count: 'count' }],
@@ -122,10 +126,10 @@ router.get('/distributions', async (req, res, next) => {
 router.get('/', async (req, res, next) => {
   try {
     const { search, tag, segment: segmentId, page = 1, limit = 12, sort } = req.query;
-    const query = {};
+    const query = { userId: req.userId };
 
     if (segmentId) {
-      const segment = await Segment.findById(segmentId).lean();
+      const segment = await Segment.findOne({ _id: segmentId, userId: req.userId }).lean();
       if (segment) {
         const segmentQuery = buildMongoQuery(segment.filterRules, segment.logic);
         Object.assign(query, segmentQuery);
@@ -160,7 +164,7 @@ router.post('/', async (req, res, next) => {
     if (!isValidPhone(req.body.phone)) {
       return res.status(400).json({ error: 'Phone must be a valid 10-digit Indian number (starting with 6-9)' });
     }
-    const customer = await Customer.create(req.body);
+    const customer = await Customer.create({ ...req.body, userId: req.userId });
     res.status(201).json({ customer });
   } catch (err) { next(err); }
 });
@@ -172,6 +176,7 @@ router.post('/bulk', async (req, res, next) => {
     if (customers.length > 10000) return res.status(400).json({ error: 'Maximum 10000 customers per request' });
     const normalized = customers.map(c => ({
       ...c,
+      userId: req.userId,
       phone: c.phone ? normalizePhone(c.phone) : c.phone,
     }));
     const invalid = normalized.filter(c => c.phone && !isValidPhone(c.phone));
@@ -202,16 +207,16 @@ router.post('/bulk', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.id).lean();
+    const customer = await Customer.findOne({ _id: req.params.id, userId: req.userId }).lean();
     if (!customer) return res.status(404).json({ error: 'Not found' });
-    const orders = await Order.find({ customerId: req.params.id }).sort({ orderedAt: -1 }).limit(20).lean();
+    const orders = await Order.find({ customerId: req.params.id, userId: req.userId }).sort({ orderedAt: -1 }).limit(20).lean();
     res.json({ customer, orders });
   } catch (err) { next(err); }
 });
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const customer = await Customer.findByIdAndDelete(req.params.id);
+    const customer = await Customer.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!customer) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
   } catch (err) { next(err); }

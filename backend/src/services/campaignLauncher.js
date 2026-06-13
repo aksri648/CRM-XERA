@@ -12,6 +12,7 @@ export async function launchCampaign(campaign, customers) {
   const communications = [];
 
   const commDocs = customers.map(customer => ({
+    userId: campaign.userId,
     campaignId: campaign._id,
     customerId: customer._id,
     message: (campaign.messageTemplate || 'Hello {name}')
@@ -59,6 +60,7 @@ export async function launchCampaign(campaign, customers) {
   }
 
   await PipelineEvent.create({
+    userId: campaign.userId,
     type: 'campaign_dispatched',
     title: 'Campaign Dispatched',
     description: `${campaign.name} → ${campaign.channel} Dispatched`,

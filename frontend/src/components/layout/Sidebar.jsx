@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { UserButton } from '@clerk/react';
+import { UserButton, useUser } from '@clerk/react';
 
 import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog } from 'lucide-react';
 import api from '../../lib/api';
@@ -45,7 +45,10 @@ const navGroups = [
 ];
 
 export default function Sidebar({ onOpenCommandCentre }) {
+  const { user } = useUser();
   const [badges, setBadges] = useState({ opportunities: 0, proposals: 0 });
+
+  const displayName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Account';
 
   useEffect(() => {
     const fetchBadges = async () => {
@@ -135,7 +138,7 @@ export default function Sidebar({ onOpenCommandCentre }) {
           }}
         />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-slate-300 truncate">Account</p>
+          <p className="text-sm text-slate-300 break-all leading-snug">{displayName}</p>
         </div>
       </div>
     </aside>

@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
 const AgentProposalSchema = new mongoose.Schema({
-  title:           { type: String, required: true },
+  userId:        { type: String, required: true, index: true },
+  title:         { type: String, required: true },
   segmentId:       { type: mongoose.Schema.Types.ObjectId, ref: 'Segment', default: null },
   channel:         { type: String, enum: ['whatsapp', 'sms', 'email', 'rcs'] },
   messageTemplate: { type: String },

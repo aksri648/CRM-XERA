@@ -7,7 +7,8 @@ const FilterRuleSchema = new mongoose.Schema({
 }, { _id: false });
 
 const SegmentSchema = new mongoose.Schema({
-  name:          { type: String, required: true, unique: true },
+  userId:        { type: String, required: true, index: true },
+  name:          { type: String, required: true },
   description:   { type: String },
   filterRules:   [FilterRuleSchema],
   logic:         { type: String, enum: ['AND', 'OR'], default: 'AND' },
@@ -16,6 +17,6 @@ const SegmentSchema = new mongoose.Schema({
   createdAt:     { type: Date, default: Date.now },
 });
 
-SegmentSchema.index({ name: 1 }, { unique: true });
+SegmentSchema.index({ userId: 1, name: 1 }, { unique: true });
 
 export default mongoose.model('Segment', SegmentSchema);

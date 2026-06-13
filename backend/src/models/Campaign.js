@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
 const CampaignSchema = new mongoose.Schema({
-  name:            { type: String, required: true },
+  userId:        { type: String, required: true, index: true },
+  name:          { type: String, required: true },
   segmentId:       { type: mongoose.Schema.Types.ObjectId, ref: 'Segment' },
   channel:         { type: String, enum: ['whatsapp', 'sms', 'email', 'rcs'], required: true },
   messageTemplate: { type: String, required: true },

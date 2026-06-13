@@ -9,6 +9,7 @@ function normalizePhone(v) {
 }
 
 const CustomerSchema = new mongoose.Schema({
+  userId:        { type: String, required: true, index: true },
   name:          { type: String, required: true, index: true },
   email:         { type: String, required: true, unique: true, index: true },
   phone:         {

@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
 const OrderSchema = new mongoose.Schema({
-  customerId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
+  userId:        { type: String, required: true, index: true },
+  customerId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
   productName:  { type: String, required: true },
   category:     { type: String, enum: ['fashion', 'beauty', 'food', 'electronics', 'accessories'] },
   amount:       { type: Number, required: true },

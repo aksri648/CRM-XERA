@@ -14,6 +14,7 @@ import opportunitiesRouter from './routes/opportunities.js';
 import proposalsRouter from './routes/proposals.js';
 import pipelineRouter from './routes/pipeline.js';
 import settingsRouter from './routes/settings.js';
+import setupRouter from './routes/setup.js';
 import agentRouter from './routes/agent.js';
 import errorHandler from './middleware/errorHandler.js';
 
@@ -41,6 +42,7 @@ app.use('/api/opportunities', opportunitiesRouter);
 app.use('/api/proposals', proposalsRouter);
 app.use('/api/pipeline', pipelineRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/setup', setupRouter);
 app.use('/api/agent', agentRouter);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

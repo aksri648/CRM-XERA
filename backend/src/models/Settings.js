@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const SettingsSchema = new mongoose.Schema({
-  singleton:             { type: String, default: 'global', unique: true },
+  userId:                { type: String, required: true, unique: true },
   platformName:          { type: String, default: 'Xeno AI Campaign Studio' },
   timezone:              { type: String, default: 'Asia/Kolkata' },
   currency:              { type: String, default: 'INR' },
