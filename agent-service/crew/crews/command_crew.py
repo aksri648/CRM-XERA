@@ -49,7 +49,6 @@ class CommandCrew:
             return [
                 *list(tool_events),
                 {'type': 'error', 'message': f'Agent error: {e}'},
-                {'type': 'done'},
             ]
 
         events: list[dict] = []
@@ -66,7 +65,6 @@ class CommandCrew:
         suggestions = self._suggest_followups(user_message, final_text)
         if suggestions:
             events.append({'type': 'suggestions', 'items': suggestions})
-        events.append({'type': 'done'})
         return events
 
     def _extract_final_text(self, result, fallback: str) -> str:
@@ -96,7 +94,7 @@ class CommandCrew:
     def _parse_suggestions(self, raw: str) -> list[str]:
         if not raw:
             return []
-        match = re.search(r'\[.*?\]', raw, re.DOTALL)
+        match = re.search(r'\[\s*"[^"]*"(?:\s*,\s*"[^"]*")*\s*\]', raw)
         if not match:
             return []
         try:
