@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
+import { UserButton } from '@clerk/react';
 
 import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog } from 'lucide-react';
 import api from '../../lib/api';
@@ -125,11 +126,16 @@ export default function Sidebar({ onOpenCommandCentre }) {
       </nav>
 
       <div className="border-t border-white/10 p-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white text-xs font-bold">
-          A
-        </div>
+        <UserButton
+          afterSignOutUrl="/sign-in"
+          appearance={{
+            elements: {
+              avatarBox: 'w-8 h-8',
+            },
+          }}
+        />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-slate-300 truncate">Admin</p>
+          <p className="text-sm text-slate-300 truncate">Account</p>
         </div>
       </div>
     </aside>

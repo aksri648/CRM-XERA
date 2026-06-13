@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { clerkMiddleware } from '@clerk/express';
 import { connectDB } from './db.js';
 import customersRouter from './routes/customers.js';
 import ordersRouter from './routes/orders.js';
@@ -23,6 +24,11 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+
+app.use(clerkMiddleware({
+  publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+  secretKey: process.env.CLERK_SECRET_KEY,
+}));
 
 app.use('/api/customers', customersRouter);
 app.use('/api/orders', ordersRouter);
