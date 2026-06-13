@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Sparkles, Plus, Trash2, Eye } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Sparkles, Plus, Trash2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
-import { formatNumber } from '../lib/utils';
+import { formatNumber, formatCurrency, relativeTime, getAvatarColor, getInitials } from '../lib/utils';
 import { Button } from 'src/components/ui/button';
 import { Badge } from 'src/components/ui/badge';
 import { Card, CardContent } from 'src/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from 'src/components/ui/tabs';
 import { Input } from 'src/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from 'src/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from 'src/components/ui/dialog';
+import { Avatar, AvatarFallback } from 'src/components/ui/avatar';
 
 const FIELDS = ['city', 'age', 'ltv', 'total_orders', 'last_order_days', 'gender', 'tags', 'category'];
 const OPERATORS = ['gt', 'lt', 'eq', 'gte', 'lte', 'contains', 'not_contains'];
@@ -21,6 +23,12 @@ export default function Segments() {
   const [preview, setPreview] = useState(null);
   const [segmentName, setSegmentName] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [selectedSegment, setSelectedSegment] = useState(null);
+  const [segmentCustomers, setSegmentCustomers] = useState([]);
+  const [segmentTotal, setSegmentTotal] = useState(0);
+  const [segmentPage, setSegmentPage] = useState(1);
+  const [segmentPages, setSegmentPages] = useState(1);
+  const [segmentLoading, setSegmentLoading] = useState(false);
 
   const fetchAiSegments = () => {
     api.get('/api/segments?created_by=agent').then(r => {
@@ -83,6 +91,22 @@ export default function Segments() {
     } catch (e) {}
   };
 
+  const fetchSegmentCustomers = useCallback(async () => {
+    if (!selectedSegment) return;
+    setSegmentLoading(true);
+    try {
+      const res = await api.get(`/api/segments/${selectedSegment._id}/customers?page=${segmentPage}&limit=12`);
+      setSegmentCustomers(res.data.customers || []);
+      setSegmentTotal(res.data.total || 0);
+      setSegmentPages(Math.ceil((res.data.total || 0) / 12));
+    } catch (e) {}
+    setSegmentLoading(false);
+  }, [selectedSegment, segmentPage]);
+
+  useEffect(() => {
+    if (selectedSegment) fetchSegmentCustomers();
+  }, [selectedSegment, segmentPage, fetchSegmentCustomers]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -110,13 +134,13 @@ export default function Segments() {
           <p className="text-sm text-gray-500 mb-4">Based on your customer data, our AI analyzes patterns and creates meaningful audience segments:</p>
           <div className="grid grid-cols-2 gap-4">
             {aiSegments.map(s => (
-              <Card key={s._id}>
+              <Card key={s._id} onClick={() => { setSelectedSegment(s); setSegmentPage(1); }} className="cursor-pointer hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-gray-900">{s.name}</h3>
                   <p className="text-sm text-gray-600 mt-1">{s.description}</p>
                   <div className="flex items-center justify-between mt-3">
                     <Badge className="bg-teal-100 text-teal-700 border-0 text-sm font-medium">{formatNumber(s.customerCount)} customers</Badge>
-                    <Button variant="link" onClick={() => handleUseSegment(s)} className="text-[#0fd4b4] p-0 h-auto">Use</Button>
+                    <Button variant="link" onClick={(e) => { e.stopPropagation(); handleUseSegment(s); }} className="text-[#0fd4b4] p-0 h-auto">Use</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -136,14 +160,13 @@ export default function Segments() {
               </tr></thead>
               <tbody>
                 {manualSegments.map(s => (
-                  <tr key={s._id} className="border-b border-gray-50">
+                  <tr key={s._id} className="border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => { setSelectedSegment(s); setSegmentPage(1); }}>
                     <td className="px-4 py-3 font-medium text-gray-900">{s.name}</td>
                     <td className="px-4 py-3 text-gray-500">{s.filterRules?.length || 0} rules</td>
                     <td className="px-4 py-3">{formatNumber(s.customerCount)}</td>
                     <td className="px-4 py-3 text-gray-500">{new Date(s.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600 px-1"><Eye size={16} /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(s._id)} className="text-gray-400 hover:text-red-500 px-1"><Trash2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(s._id); }} className="text-gray-400 hover:text-red-500 px-1"><Trash2 size={16} /></Button>
                     </td>
                   </tr>
                 ))}
@@ -205,6 +228,77 @@ export default function Segments() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!selectedSegment} onOpenChange={(open) => { if (!open) { setSelectedSegment(null); setSegmentCustomers([]); } }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          {selectedSegment && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedSegment.name}</DialogTitle>
+                <p className="text-sm text-gray-500">{formatNumber(segmentTotal)} customers in this segment</p>
+              </DialogHeader>
+
+              <div className="flex-1 overflow-y-auto mt-2 -mx-6 px-6">
+                {segmentLoading ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="bg-gray-50 rounded-lg p-3 animate-pulse">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gray-200" />
+                          <div className="space-y-2 flex-1">
+                            <div className="h-4 w-24 bg-gray-200 rounded" />
+                            <div className="h-3 w-32 bg-gray-200 rounded" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : segmentCustomers.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No customers found in this segment.</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {segmentCustomers.map(c => (
+                      <Card key={c._id}>
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Avatar className="w-9 h-9">
+                              <AvatarFallback className="text-white text-xs font-bold" style={{ backgroundColor: getAvatarColor(c.name) }}>
+                                {getInitials(c.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-gray-900 text-sm truncate">{c.name}</p>
+                              <p className="text-xs text-gray-500 truncate">{c.email}</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1 text-center text-xs">
+                            <div><p className="text-gray-400">LTV</p><p className="font-medium text-gray-900">{formatCurrency(c.ltv)}</p></div>
+                            <div><p className="text-gray-400">Orders</p><p className="font-medium text-gray-900">{c.totalOrders}</p></div>
+                            <div><p className="text-gray-400">Last</p><p className="font-medium text-gray-900">{c.lastOrderAt ? relativeTime(c.lastOrderAt) : '—'}</p></div>
+                          </div>
+                          {c.city && <p className="text-[10px] text-gray-400 mt-1 text-center">{c.city}</p>}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {segmentPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-3 border-t">
+                  <Button disabled={segmentPage <= 1} onClick={() => setSegmentPage(p => p - 1)} variant="outline" size="sm">
+                    <ChevronLeft size={14} />
+                  </Button>
+                  <span className="text-sm text-gray-500">Page {segmentPage} of {segmentPages}</span>
+                  <Button disabled={segmentPage >= segmentPages} onClick={() => setSegmentPage(p => p + 1)} variant="outline" size="sm">
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
