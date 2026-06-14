@@ -25,12 +25,12 @@ import { GlassAvatar } from '../components/ui/glass-avatar';
 import { GlassSeparator } from '../components/glass-separator';
 
 const FEATURES = [
-  { icon: FileSpreadsheet, title: 'CSV Import', desc: 'Drop a CSV and start. Fuzzy column mapping and per-row validation mean messy exports just work.' },
-  { icon: Gauge, title: 'Health Scoring', desc: 'Every customer is auto-scored — loyal, regular, at-risk, churning, new — from recency, frequency & spend.' },
-  { icon: Users, title: 'Natural-Language Segments', desc: '"Customers in Delhi who spent over ₹5,000." The AI compiles plain English into a precise audience.' },
-  { icon: PenLine, title: 'AI Message Drafting', desc: 'On-brand copy generated per segment and per channel — ready to review before anything sends.' },
-  { icon: GitFork, title: 'Per-Customer Routing', desc: 'The AI picks WhatsApp, SMS, or Email individually, per recipient, from engagement patterns.' },
-  { icon: Bot, title: 'Autonomous AI Agent', desc: 'Full CRM access with confirmation gates before any action. Ask questions, run scans, launch campaigns.' },
+  { icon: FileSpreadsheet, title: 'CSV Import', desc: 'Drop a CSV and start. Fuzzy column mapping and per-row validation mean messy exports just work.', color: '#06b6d4' },
+  { icon: Gauge, title: 'Health Scoring', desc: 'Every customer is auto-scored — loyal, regular, at-risk, churning, new — from recency, frequency & spend.', color: '#8b5cf6' },
+  { icon: Users, title: 'Natural-Language Segments', desc: '"Customers in Delhi who spent over ₹5,000." The AI compiles plain English into a precise audience.', color: '#ec4899' },
+  { icon: PenLine, title: 'AI Message Drafting', desc: 'On-brand copy generated per segment and per channel — ready to review before anything sends.', color: '#f59e0b' },
+  { icon: GitFork, title: 'Per-Customer Routing', desc: 'The AI picks WhatsApp, SMS, or Email individually, per recipient, from engagement patterns.', color: '#10b981' },
+  { icon: Bot, title: 'Autonomous AI Agent', desc: 'Full CRM access with confirmation gates before any action. Ask questions, run scans, launch campaigns.', color: '#f43f5e' },
 ];
 
 const STEPS = [
@@ -369,20 +369,82 @@ export default function Landing() {
               <h2 className="font-serif text-4xl font-light leading-tight tracking-tight sm:text-5xl md:text-6xl">Everything you need to grow</h2>
               <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-gray-400 sm:text-base">A complete AI-native CRM loop — from ingestion to attribution — that works while you sleep.</p>
             </motion.div>
-            <motion.div className="relative mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}>
-              {FEATURES.map(f => (
-                <motion.div key={f.title} variants={fadeUp}>
-                  <GlassCard className="h-full p-6 transition-all duration-300 hover:border-cyan-400/30">
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 transition-transform duration-300 group-hover:scale-110">
-                      <f.icon className="h-5 w-5" />
+
+            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map((f, i) => (
+                <div key={f.title} className="feature-card group relative h-full">
+                  <div className="feature-card-inner relative h-full overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm transition-all duration-500 hover:border-transparent hover:bg-white/[0.06]">
+                    {/* Animated border line */}
+                    <div className="feature-border absolute inset-0 rounded-2xl" style={{ '--card-color': f.color, '--card-index': i }} />
+                    {/* Neon glow */}
+                    <div
+                      className="pointer-events-none absolute -inset-2 rounded-2xl opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-30"
+                      style={{ backgroundColor: f.color }}
+                    />
+                    <div className="relative z-10">
+                      <div
+                        className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-500 group-hover:scale-110"
+                        style={{
+                          backgroundColor: `${f.color}15`,
+                          color: f.color,
+                        }}
+                      >
+                        <f.icon className="h-5 w-5" />
+                      </div>
+                      <h3 className="mb-2 text-base font-semibold text-white">{f.title}</h3>
+                      <p className="text-sm leading-relaxed text-gray-400">{f.desc}</p>
                     </div>
-                    <h3 className="mb-2 text-base font-semibold text-white">{f.title}</h3>
-                    <p className="text-sm leading-relaxed text-gray-400">{f.desc}</p>
-                  </GlassCard>
-                </motion.div>
+                  </div>
+                </div>
               ))}
-            </motion.div>
+            </div>
           </div>
+
+          <style>{`
+            .feature-card {
+              perspective: 800px;
+            }
+            .feature-border {
+              pointer-events: none;
+              opacity: 0;
+              transition: opacity 0.5s ease;
+            }
+            .feature-card:hover .feature-border {
+              opacity: 1;
+            }
+            .feature-border::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+              border-radius: inherit;
+              padding: 1px;
+              background: conic-gradient(
+                from var(--border-angle, 0deg),
+                transparent 40%,
+                var(--card-color) 50%,
+                transparent 60%
+              );
+              -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+              -webkit-mask-composite: xor;
+              mask-composite: exclude;
+              animation: borderSpin 3s linear infinite;
+            }
+            .feature-card:nth-child(1) .feature-border::before { --card-color: #06b6d4; }
+            .feature-card:nth-child(2) .feature-border::before { --card-color: #8b5cf6; }
+            .feature-card:nth-child(3) .feature-border::before { --card-color: #ec4899; }
+            .feature-card:nth-child(4) .feature-border::before { --card-color: #f59e0b; }
+            .feature-card:nth-child(5) .feature-border::before { --card-color: #10b981; }
+            .feature-card:nth-child(6) .feature-border::before { --card-color: #f43f5e; }
+
+            @property --border-angle {
+              syntax: '<angle>';
+              inherits: false;
+              initial-value: 0deg;
+            }
+            @keyframes borderSpin {
+              to { --border-angle: 360deg; }
+            }
+          `}</style>
         </section>
 
         {/* AI Agent */}
