@@ -10,6 +10,7 @@ const CommunicationSchema = new mongoose.Schema({
   channel:     { type: String, required: true },
   status:      { type: String, enum: STATUS_ORDER, default: 'pending', index: true },
   sentAt:      { type: Date },
+  settled:     { type: Boolean, default: false, index: true },
   updatedAt:   { type: Date, default: Date.now },
 });
 

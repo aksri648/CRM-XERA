@@ -18,6 +18,8 @@ const CampaignSchema = new mongoose.Schema({
     revenue:    { type: Number, default: 0 },
     failed:     { type: Number, default: 0 },
   },
+  totalComms:   { type: Number, default: 0 },
+  settledComms: { type: Number, default: 0 },
   launchedAt:   { type: Date },
   completedAt:  { type: Date },
   createdAt:    { type: Date, default: Date.now },

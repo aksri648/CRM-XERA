@@ -8,7 +8,7 @@ const router = Router();
 
 router.post('/callback', async (req, res) => {
   try {
-    const { communication_id, campaign_id, customer_id, channel, event, timestamp } = req.body;
+    const { communication_id, campaign_id, customer_id, channel, event, timestamp, terminal } = req.body;
 
     if (!communication_id || !mongoose.Types.ObjectId.isValid(communication_id)) {
       console.warn(`Invalid communication_id: ${communication_id}`);
@@ -25,8 +25,10 @@ router.post('/callback', async (req, res) => {
     const newIdx = STATUS_ORDER.indexOf(event);
 
     if (newIdx === -1) return res.json({ ok: true });
-    if (comm.status === 'failed') return res.json({ ok: true });
-    if (newIdx <= currentIdx) return res.json({ ok: true, skipped: 'already processed' });
+    if (comm.settled) return res.json({ ok: true, skipped: 'already settled' });
+    if (event !== 'failed' && newIdx <= currentIdx) {
+      return res.json({ ok: true, skipped: 'already processed' });
+    }
 
     comm.status = event;
     comm.updatedAt = new Date();
@@ -40,17 +42,26 @@ router.post('/callback', async (req, res) => {
     }
     await Campaign.findByIdAndUpdate(campaign_id, update);
 
-    if (event === 'converted' || event === 'failed') {
-      const total = await Communication.countDocuments({ campaignId: campaign_id });
-      const terminal = await Communication.countDocuments({
-        campaignId: campaign_id,
-        status: { $in: ['converted', 'failed'] },
-      });
-      if (total === terminal) {
-        await Campaign.findByIdAndUpdate(campaign_id, {
-          status: 'completed',
-          completedAt: new Date(),
-        });
+    if (terminal) {
+      const settledResult = await Communication.findOneAndUpdate(
+        { _id: communication_id, settled: false },
+        { $set: { settled: true } },
+        { new: false }
+      );
+
+      if (settledResult && !settledResult.settled) {
+        const campaign = await Campaign.findOneAndUpdate(
+          { _id: campaign_id },
+          { $inc: { 'settledComms': 1 } },
+          { new: true }
+        );
+
+        if (campaign && campaign.totalComms > 0 && campaign.settledComms >= campaign.totalComms && campaign.status !== 'completed') {
+          await Campaign.findOneAndUpdate(
+            { _id: campaign_id, status: { $ne: 'completed' } },
+            { $set: { status: 'completed', completedAt: new Date() } }
+          );
+        }
       }
     }
 
@@ -58,7 +69,7 @@ router.post('/callback', async (req, res) => {
       userId: comm.userId,
       type: 'callback_received',
       title: 'Callback Received',
-      description: `${event} for comm ${communication_id}`,
+      description: `${event}${terminal ? ' (terminal)' : ''} for comm ${communication_id}`,
       badge: 'OK',
       campaignId: campaign_id,
     });
