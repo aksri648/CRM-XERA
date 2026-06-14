@@ -14,15 +14,29 @@ router.get('/overview', async (req, res, next) => {
     const active_campaigns = await Campaign.countDocuments({ userId, status: 'running' });
     const sentResult = await Campaign.aggregate([
       { $match: { userId } },
-      { $group: { _id: null, total: { $sum: '$stats.sent' }, revenue: { $sum: '$stats.revenue' } } },
+      { $group: {
+        _id: null,
+        total_sent: { $sum: '$stats.sent' },
+        total_delivered: { $sum: '$stats.delivered' },
+        total_opened: { $sum: '$stats.opened' },
+        total_converted: { $sum: '$stats.converted' },
+        revenue: { $sum: '$stats.revenue' },
+      }},
     ]);
-    const messages_sent = sentResult[0]?.total || 0;
-    const revenue_attributed = sentResult[0]?.revenue || 0;
+    const s = sentResult[0] || {};
+    const messages_sent = s.total_sent || 0;
+    const revenue_attributed = s.revenue || 0;
+    const delivery_rate = s.total_sent ? s.total_delivered / s.total_sent : 0;
+    const open_rate = s.total_delivered ? s.total_opened / s.total_delivered : 0;
+    const conversion_rate = s.total_opened ? s.total_converted / s.total_opened : 0;
     res.json({
       total_customers,
       active_campaigns,
       messages_sent,
       revenue_attributed,
+      delivery_rate,
+      open_rate,
+      conversion_rate,
       trends: {
         customers_pct: 12.5,
         campaigns_this_week: 2,
