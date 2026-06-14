@@ -34,13 +34,13 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { label: 'Import', desc: 'Upload your customer data via CSV or API.' },
-  { label: 'Score', desc: 'AI auto-scores every customer on health & value.' },
-  { label: 'Segment', desc: 'Define audiences in plain English or with rules.' },
-  { label: 'Draft', desc: 'AI writes on-brand messages for each channel.' },
-  { label: 'Route', desc: 'Best channel picked per customer automatically.' },
-  { label: 'Launch', desc: 'Campaign goes live with real-time tracking.' },
-  { label: 'Attribute', desc: 'Revenue & engagement traced back to each campaign.' },
+  { label: 'Import', desc: 'Upload customer data via CSV or API.', icon: FileSpreadsheet, color: '#06b6d4', glow: 'cyan' },
+  { label: 'Score', desc: 'AI auto-scores health & value.', icon: Gauge, color: '#8b5cf6', glow: 'violet' },
+  { label: 'Segment', desc: 'Define audiences in plain English.', icon: Users, color: '#ec4899', glow: 'pink' },
+  { label: 'Draft', desc: 'AI writes on-brand messages.', icon: PenLine, color: '#f59e0b', glow: 'amber' },
+  { label: 'Route', desc: 'Best channel picked per customer.', icon: GitFork, color: '#10b981', glow: 'emerald' },
+  { label: 'Launch', desc: 'Campaign goes live, tracked in real-time.', icon: Zap, color: '#3b82f6', glow: 'blue' },
+  { label: 'Attribute', desc: 'Revenue traced to each campaign.', icon: BarChart3, color: '#f43f5e', glow: 'rose' },
 ];
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } };
@@ -169,39 +169,196 @@ export default function Landing() {
               <h2 className="font-serif text-4xl font-light leading-tight tracking-tight sm:text-5xl md:text-6xl">From a CSV to a launched campaign</h2>
               <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-gray-400 sm:text-base">Your data flows through one autonomous pipeline — seven stages, most of them hands-off.</p>
             </motion.div>
-            <div className="mx-auto mt-12 grid max-w-3xl gap-8 lg:grid-cols-2">
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}>
-                {STEPS.map((step, i) => (
-                  <motion.div key={step.label} variants={fadeUp} className="relative flex items-start gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-400/30 bg-cyan-500/10 text-xs font-bold text-cyan-400">{i + 1}</div>
-                      {i < STEPS.length - 1 && <div className="mt-2 h-8 w-px bg-gradient-to-b from-cyan-500/30 to-transparent" />}
-                    </div>
-                    <div className="pb-6">
-                      <h4 className="text-sm font-semibold text-white">{step.label}</h4>
-                      <p className="mt-1 text-sm text-gray-400">{step.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-              <motion.div className="hidden items-center justify-center lg:flex" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-                <GlassCard className="p-8">
-                  <div className="flex flex-col items-center gap-3">
-                    {STEPS.map((step, i) => (
-                      <div key={step.label} className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-500/5 text-xs font-bold text-cyan-400 transition-all hover:border-cyan-400/40 hover:bg-cyan-500/10">{i + 1}</div>
-                        <span className="text-sm text-gray-400">{step.label}</span>
+
+            {/* Neon Pipeline Flowchart */}
+            <motion.div
+              className="relative mx-auto mt-16 max-w-5xl"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-50px' }}
+              variants={stagger}
+            >
+              {/* Animated connecting line */}
+              <div className="absolute left-0 right-0 top-1/2 hidden h-px -translate-y-1/2 lg:block">
+                <div className="h-full w-full bg-gradient-to-r from-cyan-500/0 via-cyan-500/40 to-cyan-500/0" />
+                <div className="absolute inset-0 h-full w-full animate-[pulse_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              </div>
+
+              {/* Steps Grid */}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7 lg:gap-3">
+                {STEPS.map((step, i) => {
+                  const Icon = step.icon;
+                  return (
+                    <motion.div
+                      key={step.label}
+                      variants={fadeUp}
+                      className="group relative flex flex-col items-center text-center"
+                    >
+                      {/* Neon Glow Card */}
+                      <div
+                        className="relative mb-3 flex h-20 w-20 items-center justify-center rounded-2xl border-2 transition-all duration-500 sm:h-24 sm:w-24"
+                        style={{
+                          borderColor: `${step.color}40`,
+                          boxShadow: `0 0 15px ${step.color}20, inset 0 0 15px ${step.color}10`,
+                        }}
+                      >
+                        {/* Animated neon pulse ring */}
+                        <div
+                          className="absolute -inset-1 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                          style={{
+                            background: `linear-gradient(135deg, ${step.color}30, transparent, ${step.color}20)`,
+                            filter: 'blur(8px)',
+                          }}
+                        />
+                        {/* Rotating border glow */}
+                        <div
+                          className="absolute -inset-0.5 rounded-2xl opacity-50"
+                          style={{
+                            background: `conic-gradient(from ${i * 51.4}deg, transparent, ${step.color}60, transparent, ${step.color}30, transparent)`,
+                            filter: 'blur(4px)',
+                            animation: 'spin 6s linear infinite',
+                          }}
+                        />
+                        <div className="relative flex h-full w-full items-center justify-center rounded-xl bg-[#09090b]/80 backdrop-blur-sm">
+                          <Icon
+                            className="h-7 w-7 transition-transform duration-300 group-hover:scale-110"
+                            style={{ color: step.color }}
+                          />
+                        </div>
                       </div>
-                    ))}
-                    <div className="mt-2 flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-500/10">
-                      <Sparkles className="h-6 w-6 text-cyan-400" />
+
+                      {/* Step number */}
+                      <div
+                        className="mb-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                        style={{
+                          backgroundColor: `${step.color}20`,
+                          color: step.color,
+                        }}
+                      >
+                        {i + 1}
+                      </div>
+
+                      {/* Label */}
+                      <h4 className="text-xs font-semibold text-white sm:text-sm">{step.label}</h4>
+                      <p className="mt-1 hidden text-[11px] leading-tight text-gray-500 sm:block">{step.desc}</p>
+
+                      {/* Arrow to next (hidden on last) */}
+                      {i < STEPS.length - 1 && (
+                        <div className="absolute right-0 top-10 hidden -translate-y-1/2 translate-x-full lg:block">
+                          <svg width="24" height="12" viewBox="0 0 24 12" fill="none">
+                            <path
+                              d="M0 6H20M20 6L16 2M20 6L16 10"
+                              stroke={`${step.color}`}
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              opacity="0.5"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Center AI Hub */}
+              <motion.div variants={fadeUp} className="mt-10 flex justify-center lg:mt-6">
+                <div className="relative group">
+                  {/* Outer glow ring */}
+                  <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-pink-500/20 blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="relative flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-6 py-3 backdrop-blur-xl">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500/30 to-violet-500/30">
+                      <Sparkles className="h-4 w-4 text-cyan-400" />
                     </div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400/70">Xeno AI</span>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Xeno AI Pipeline</p>
+                      <p className="text-[10px] text-gray-500">Autonomous end-to-end orchestration</p>
+                    </div>
+                    <div className="ml-2 flex h-2 w-2 items-center justify-center">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/40 opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    </div>
                   </div>
-                </GlassCard>
+                </div>
               </motion.div>
-            </div>
+
+              {/* Mobile: Vertical flow */}
+              <div className="mt-8 flex flex-col items-center gap-2 lg:hidden">
+                {STEPS.map((step, i) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={step.label} className="flex items-center gap-3">
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border-2"
+                        style={{
+                          borderColor: `${step.color}40`,
+                          boxShadow: `0 0 10px ${step.color}15`,
+                        }}
+                      >
+                        <Icon className="h-4 w-4" style={{ color: step.color }} />
+                      </div>
+                      <span className="text-sm text-gray-300">{step.label}</span>
+                      {i < STEPS.length - 1 && (
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-600">
+                          <path d="M8 3V13M8 13L5 10M8 13L11 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
           </div>
+
+          {/* Add keyframes for spin */}
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </section>
+
+        {/* See It In Action */}
+        <section className="relative w-full py-16 sm:py-24">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <motion.div className="mx-auto max-w-2xl text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={fadeUp}>
+              <GlassBadge variant="primary" className="mb-4">Live Demo</GlassBadge>
+              <h2 className="font-serif text-4xl font-light leading-tight tracking-tight sm:text-5xl md:text-6xl">See it in action</h2>
+              <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-gray-400 sm:text-base">Watch how Xeno turns raw customer data into a fully launched, AI-optimized campaign — end to end.</p>
+            </motion.div>
+          </div>
+
+          {/* Full-width video */}
+          <motion.div
+            className="relative mt-10 w-full"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={fadeUp}
+          >
+            <div className="relative mx-auto max-w-7xl overflow-hidden rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/40">
+              {/* Neon glow behind video */}
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-pink-500/20 blur-xl opacity-60" />
+              <div className="relative">
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="h-auto w-full object-cover"
+                  style={{ aspectRatio: '16/9' }}
+                >
+                  <source src="/app working.mp4" type="video/mp4" />
+                </video>
+                {/* Top gradient fade */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#09090b] to-transparent" />
+                {/* Bottom gradient fade */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#09090b] to-transparent" />
+              </div>
+            </div>
+          </motion.div>
         </section>
 
         {/* Features */}
