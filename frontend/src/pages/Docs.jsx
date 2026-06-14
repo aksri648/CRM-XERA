@@ -89,22 +89,6 @@ function DocCard({ number, title, children }) {
   );
 }
 
-function FlowDiagram() {
-  const steps = ['Ingest', 'Segment', 'Outbox', 'Worker', 'Channel', 'Receipts', 'Attribute', 'Insights'];
-  return (
-    <div className="my-6 flex flex-wrap items-center justify-center gap-2">
-      {steps.map((s, i) => (
-        <div key={s} className="flex items-center gap-2">
-          <GlassBadge variant={i === steps.length - 1 ? 'primary' : 'default'} size="sm">
-            <span className="mr-1.5 text-[10px] font-bold">{i + 1}</span>{s}
-          </GlassBadge>
-          {i < steps.length - 1 && <span className="text-gray-600">→</span>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function Docs() {
   const [active, setActive] = useState('overview');
   useEffect(() => {
@@ -152,7 +136,6 @@ export default function Docs() {
                 { n: '4', t: 'Insights', d: 'Real-time counters, revenue attribution, AI-written briefs.' },
               ].map(c => <DocCard key={c.t} number={c.n} title={c.t}>{c.d}</DocCard>)}
             </div>
-            <FlowDiagram />
           </motion.section>
 
           <GlassSeparator />
