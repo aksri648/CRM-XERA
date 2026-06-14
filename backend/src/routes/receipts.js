@@ -26,7 +26,7 @@ router.post('/callback', async (req, res) => {
 
     if (newIdx === -1) return res.json({ ok: true });
     if (comm.status === 'failed') return res.json({ ok: true });
-    if (newIdx <= currentIdx) return res.json({ ok: true });
+    if (newIdx <= currentIdx) return res.json({ ok: true, skipped: 'already processed' });
 
     comm.status = event;
     comm.updatedAt = new Date();

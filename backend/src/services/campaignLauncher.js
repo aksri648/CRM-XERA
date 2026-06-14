@@ -32,32 +32,39 @@ export async function launchCampaign(campaign, customers) {
 
   const batches = chunkArray(communications, 100);
   let failed = 0;
-  for (const batch of batches) {
-    const results = await Promise.allSettled(batch.map(({ comm, customer }) =>
-      fetch(`${channelServiceUrl}/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          communication_id: comm._id.toString(),
-          campaign_id: campaign._id.toString(),
-          customer_id: customer._id.toString(),
-          channel: campaign.channel,
-          message: comm.message,
-          callback_url: callbackUrl,
-        }),
-      }).then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      }).catch(err => {
-        console.error('Channel send error:', err.message);
-        failed++;
-        throw err;
-      })
-    ));
-    results.forEach((r, i) => {
-      if (r.status === 'rejected') communications[i].failed = true;
-    });
-  }
+  const batchResults = await Promise.allSettled(
+    batches.map(batch =>
+      Promise.allSettled(batch.map(({ comm, customer }) =>
+        fetch(`${channelServiceUrl}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            communication_id: comm._id.toString(),
+            campaign_id: campaign._id.toString(),
+            customer_id: customer._id.toString(),
+            channel: campaign.channel,
+            message: comm.message,
+            callback_url: callbackUrl,
+          }),
+        }).then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        }).catch(err => {
+          console.error('Channel send error:', err.message);
+          throw err;
+        })
+      ))
+    )
+  );
+  batchResults.forEach(batchResult => {
+    if (batchResult.status === 'fulfilled') {
+      batchResult.value.forEach((r, i) => {
+        if (r.status === 'rejected') failed++;
+      });
+    } else {
+      failed += 100;
+    }
+  });
 
   await PipelineEvent.create({
     userId: campaign.userId,

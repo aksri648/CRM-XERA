@@ -69,7 +69,12 @@ async function processJob(job) {
   }
 
   await new Promise(r => setTimeout(r, randomDelay(...DELAYS.pending_to_sent)));
-  await sendCallback(callback_url, buildPayload(job, 'sent'));
+  const sentOk = await sendCallback(callback_url, buildPayload(job, 'sent'));
+  if (!sentOk) {
+    global.stats.outcomes.failed++;
+    return;
+  }
+  global.processedCount++;
   global.stats.total_sent++;
 
   await new Promise(r => setTimeout(r, randomDelay(...DELAYS.sent_to_delivered)));
@@ -137,7 +142,6 @@ app.post('/send', (req, res) => {
     console.error(`Job ${job.id} failed with error:`, err.message);
     sendCallback(callback_url, buildPayload(job, 'failed')).catch(() => {});
   });
-  global.processedCount++;
 
   return res.status(202).json({
     accepted: true,
