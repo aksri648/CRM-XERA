@@ -6,3 +6,10 @@ dist/
 __pycache__/
 *.pyc
 .venv/
+prompt(1).md
+docker-compose.yml
+.python-version
+skills-lock.json
+.agents/
+runtime.txt
+
