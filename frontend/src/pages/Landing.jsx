@@ -23,6 +23,7 @@ import { GlassCard, GlassCardContent, GlassCardTitle } from '../components/ui/gl
 import { GlassBadge } from '../components/ui/glass-badge';
 import { GlassAvatar } from '../components/ui/glass-avatar';
 import { GlassSeparator } from '../components/glass-separator';
+import AgentConversationFlow from '../components/AgentConversationFlow';
 
 const FEATURES = [
   { icon: FileSpreadsheet, title: 'CSV Import', desc: 'Drop a CSV and start. Fuzzy column mapping and per-row validation mean messy exports just work.', color: '#06b6d4' },
@@ -468,33 +469,8 @@ export default function Landing() {
               </motion.div>
             </motion.div>
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-              <GlassCard className="p-6 sm:p-8">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <GlassAvatar className="h-8 w-8 flex-shrink-0"><div className="flex h-full w-full items-center justify-center bg-cyan-500/20 text-xs font-bold text-cyan-400">U</div></GlassAvatar>
-                    <div className="rounded-2xl rounded-tl-sm bg-white/5 px-4 py-3 text-sm text-gray-300">Find all customers in Mumbai who haven't ordered in 60 days and send them a win-back offer.</div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <GlassAvatar className="h-8 w-8 flex-shrink-0"><Bot className="h-4 w-4 text-violet-400" /></GlassAvatar>
-                    <div className="rounded-2xl rounded-tl-sm bg-cyan-500/5 border border-cyan-400/10 px-4 py-3 text-sm text-gray-300">
-                      <p className="mb-2 text-xs font-semibold text-cyan-400">AI Agent</p>
-                      <p>Found <span className="font-semibold text-white">847 customers</span> matching your criteria.</p>
-                      <p className="mt-1">Segment created. Drafting win-back messages...</p>
-                      <div className="mt-3"><GlassBadge variant="success" size="sm"><Shield className="mr-1 h-3 w-3" /> Awaiting approval</GlassBadge></div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <GlassAvatar className="h-8 w-8 flex-shrink-0"><div className="flex h-full w-full items-center justify-center bg-cyan-500/20 text-xs font-bold text-cyan-400">U</div></GlassAvatar>
-                    <div className="rounded-2xl rounded-tl-sm bg-white/5 px-4 py-3 text-sm text-gray-300">Approved. Launch it.</div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <GlassAvatar className="h-8 w-8 flex-shrink-0"><Bot className="h-4 w-4 text-violet-400" /></GlassAvatar>
-                    <div className="rounded-2xl rounded-tl-sm bg-cyan-500/5 border border-cyan-400/10 px-4 py-3 text-sm text-gray-300">
-                      <p>Campaign <span className="font-semibold text-white">"Win-Back Mumbai"</span> launched.</p>
-                      <p className="mt-1">847 messages queued across 2 channels. Tracking live →</p>
-                    </div>
-                  </div>
-                </div>
+              <GlassCard className="h-[420px] overflow-hidden p-0 sm:h-[460px]">
+                <AgentConversationFlow autoPlay={true} loop={true} speed={1} />
               </GlassCard>
             </motion.div>
           </div>
