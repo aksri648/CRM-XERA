@@ -544,6 +544,7 @@ export default function Docs() {
     EXEC["POST /api/agent/execute\nBackend executes"]
     OK["Green border\nResult shown"]
     FAIL["Red border\nError message shown"]
+    REJECTED["Grey border\nRejected"]
 
     AI --> QUEUE
     QUEUE --> CARD
@@ -552,7 +553,7 @@ export default function Docs() {
     APPROVE --> EXEC
     EXEC -->|"ok: true"| OK
     EXEC -->|"ok: false"| FAIL
-    REJECT -->|"Grey border\nRejected"`} />
+    REJECT --> REJECTED`} />
           </motion.section>
 
           <GlassSeparator />
