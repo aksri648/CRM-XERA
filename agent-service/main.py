@@ -47,7 +47,7 @@ class InsightsRequest(BaseModel):
 
 
 class SegmentGenerateRequest(BaseModel):
-    token: str = Field(..., min_length=1)
+    token: str = ""
     prompt: str = ""
 
 

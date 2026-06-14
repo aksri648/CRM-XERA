@@ -14,8 +14,6 @@ router.post('/chat', async (req, res, next) => {
   try {
     const { session_id, message } = req.body;
     const userId = req.userId;
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '');
     const [recentCampaigns, segments, total_campaigns, total_segments] = await Promise.all([
       Campaign.find({ userId }).sort({ createdAt: -1 }).limit(5).select('name channel status stats createdAt').lean(),
       Segment.find({ userId }).limit(10).select('name description customerCount').lean(),
@@ -64,13 +62,11 @@ router.post('/chat', async (req, res, next) => {
 router.post('/command', async (req, res, next) => {
   try {
     const { session_id, message } = req.body;
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '');
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
     const agentResponse = await fetch(`${agentServiceUrl}/crew/command`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id, message, context: {}, token }),
+      body: JSON.stringify({ session_id, message, context: {} }),
     });
 
     if (!agentResponse.ok) {
@@ -198,8 +194,7 @@ router.post('/execute', async (req, res) => {
   try {
     const { method, path, body } = TOOL_DISPATCH[tool](resolved);
     const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
-    const authHeader = req.headers.authorization || '';
-    const init = { method, headers: { 'Content-Type': 'application/json', 'Authorization': authHeader } };
+    const init = { method, headers: { 'Content-Type': 'application/json' } };
     if (body !== undefined) init.body = JSON.stringify(body);
     const upstream = await fetch(`${baseUrl}${path}`, init);
     const text = await upstream.text();

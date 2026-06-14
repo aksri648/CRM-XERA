@@ -179,7 +179,7 @@ export default function Docs() {
 
     subgraph Backend["Backend API — Express :8000"]
         API[REST + SSE Endpoints]
-        AUTH[Clerk Auth Middleware]
+        AUTH[Auth Middleware]
         DB[Mongoose ODM]
     end
 
@@ -236,7 +236,7 @@ export default function Docs() {
                 ['AI Layer', 'CrewAI + FastAPI', 'Multi-agent AI orchestration with tool calling'],
                 ['Frontend', 'React + Vite + Tailwind', 'Fast SPA with shadcn/ui + Ein UI glass components'],
                 ['ORM', 'Mongoose 8', 'Schema validation, middleware, compound indexes'],
-                ['Auth', 'Clerk', 'Managed auth with JWT middleware'],
+                ['Auth', 'Custom Middleware', 'Simple userId-based request scoping'],
               ]}
             />
           </motion.section>
@@ -549,8 +549,6 @@ cd frontend && npm run dev         # :5173`}</Code>
               headers={['Variable', 'Service', 'Example']}
               rows={[
                 ['MONGODB_URI', 'backend', 'mongodb://localhost:27017/xenocrm'],
-                ['CLERK_SECRET_KEY', 'backend', 'sk_test_...'],
-                ['VITE_CLERK_PUBLISHABLE_KEY', 'frontend', 'pk_test_...'],
                 ['FRONTEND_URL', 'backend', 'http://localhost:5173'],
                 ['PORT', 'backend', '8000'],
               ]}

@@ -1,10 +1,6 @@
-import { getAuth } from '@clerk/express';
+const DEFAULT_USER_ID = 'default-user';
 
 export function requireAuth(req, res, next) {
-  const { userId } = getAuth(req);
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  req.userId = userId;
+  req.userId = DEFAULT_USER_ID;
   next();
 }

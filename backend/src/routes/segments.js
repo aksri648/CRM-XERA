@@ -25,12 +25,9 @@ router.get('/', async (req, res, next) => {
 
 router.post('/generate', async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '');
-
     const response = await fetch(`${process.env.AGENT_SERVICE_URL || 'http://localhost:8001'}/api/crew/segment`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -49,13 +46,11 @@ router.post('/ai-generate', async (req, res, next) => {
   try {
     const { prompt } = req.body;
     if (!prompt || !prompt.trim()) return res.status(400).json({ error: 'prompt is required' });
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '');
 
     const response = await fetch(`${process.env.AGENT_SERVICE_URL || 'http://localhost:8001'}/api/crew/segment`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ token, prompt: prompt.trim() }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt.trim() }),
     });
 
     if (!response.ok) {
