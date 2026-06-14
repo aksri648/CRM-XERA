@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import mongoose from 'mongoose';
 import { faker } from '@faker-js/faker';
 import Customer from '../models/Customer.js';
 import Order from '../models/Order.js';
