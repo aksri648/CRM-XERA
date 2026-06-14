@@ -125,7 +125,7 @@ export default function Sidebar({ onOpenCommandCentre }) {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-4 flex items-center gap-3">
+      <div className="border-t border-white/10 p-4 flex items-center gap-3 shrink-0">
         <div className="w-8 h-8 rounded-full bg-[#1a2d3d] flex items-center justify-center">
           <span className="text-[#0fd4b4] font-semibold text-sm">U</span>
         </div>
@@ -134,10 +134,11 @@ export default function Sidebar({ onOpenCommandCentre }) {
         </div>
         <button
           onClick={() => navigate('/')}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors text-xs"
           title="Exit to landing page"
         >
           <LogOut size={16} />
+          <span>Exit</span>
         </button>
       </div>
     </aside>
