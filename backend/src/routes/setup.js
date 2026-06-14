@@ -60,13 +60,27 @@ function funnelRandom(base, decay) {
 
 router.get('/check', async (req, res, next) => {
   try {
-    res.json({ hasData: false, customerCount: 0 });
+    const userId = req.userId;
+    const [customerCount, campaignCount, segmentCount, opportunityCount] = await Promise.all([
+      Customer.countDocuments({ userId }),
+      Campaign.countDocuments({ userId }),
+      Segment.countDocuments({ userId }),
+      Opportunity.countDocuments({ userId }),
+    ]);
+    const hasData =
+      customerCount > 0 &&
+      campaignCount > 0 &&
+      segmentCount > 0 &&
+      opportunityCount > 0;
+    res.json({ hasData, customerCount, campaignCount, segmentCount, opportunityCount });
   } catch (err) { next(err); }
 });
 
 router.post('/seed', async (req, res, next) => {
+  const startedAt = Date.now();
   try {
     const userId = req.userId;
+    console.log(`[seed] starting for userId=${userId}`);
 
     await Promise.all([
       Customer.deleteMany({ userId }),
@@ -81,6 +95,7 @@ router.post('/seed', async (req, res, next) => {
     ]);
 
     // ── Customers ──
+    const userSuffix = String(userId).replace(/[^a-z0-9]/gi, '').slice(-8).toLowerCase() || 'u';
     const customers = [];
     for (let i = 0; i < 10000; i++) {
       const first = faker.person.firstName();
@@ -88,7 +103,7 @@ router.post('/seed', async (req, res, next) => {
       customers.push({
         userId,
         name: `${first} ${last}`,
-        email: `${first.toLowerCase()}.${last.toLowerCase()}.${i}@email.com`,
+        email: `${first.toLowerCase()}.${last.toLowerCase()}.${i}.${userSuffix}@email.com`,
         phone: generateIndianPhone(),
         city: faker.helpers.arrayElement(INDIAN_CITIES),
         gender: faker.helpers.arrayElement(['male', 'female', 'other']),
@@ -99,7 +114,8 @@ router.post('/seed', async (req, res, next) => {
         lastOrderAt: null,
       });
     }
-    const insertedCustomers = await Customer.insertMany(customers);
+    const insertedCustomers = await Customer.insertMany(customers, { ordered: false });
+    console.log(`[seed] customers inserted: ${insertedCustomers.length}`);
 
     // ── Orders ──
     const orders = [];
@@ -115,7 +131,8 @@ router.post('/seed', async (req, res, next) => {
         orderedAt: new Date(Date.now() - faker.number.int({ min: 0, max: 730 }) * 86400000),
       });
     }
-    await Order.insertMany(orders);
+    await Order.insertMany(orders, { ordered: false });
+    console.log(`[seed] orders inserted: ${orders.length}`);
 
     // ── Aggregate LTV per customer ──
     const agg = await Order.aggregate([
@@ -145,6 +162,7 @@ router.post('/seed', async (req, res, next) => {
       const seg = await Segment.create({ ...s, userId, customerCount: count });
       insertedSegments.push(seg);
     }
+    console.log(`[seed] segments inserted: ${insertedSegments.length}`);
 
     // ── Campaigns (6 with varied statuses) ──
     const campaignDefs = [
@@ -190,6 +208,7 @@ router.post('/seed', async (req, res, next) => {
       const camp = await Campaign.create({ ...c, userId });
       insertedCampaigns.push(camp);
     }
+    console.log(`[seed] campaigns inserted: ${insertedCampaigns.length}`);
 
     // ── Communications (for completed + running campaigns) ──
     const communicationDocs = [];
@@ -214,8 +233,9 @@ router.post('/seed', async (req, res, next) => {
       }
     }
     if (communicationDocs.length > 0) {
-      await Communication.insertMany(communicationDocs);
+      await Communication.insertMany(communicationDocs, { ordered: false });
     }
+    console.log(`[seed] communications inserted: ${communicationDocs.length}`);
 
     // ── Opportunities (8 with varied statuses) ──
     const oppDefs = [
@@ -291,8 +311,13 @@ router.post('/seed', async (req, res, next) => {
     // ── Settings ──
     await Settings.create({ userId });
 
+    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+    console.log(`[seed] completed for userId=${userId} in ${elapsed}s`);
     res.json({ ok: true, message: 'Demo data seeded', customers: insertedCustomers.length });
-  } catch (err) { next(err); }
+  } catch (err) {
+    console.error('[seed] FAILED:', err.message, err.stack);
+    next(err);
+  }
 });
 
 export default router;

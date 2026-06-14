@@ -11,7 +11,7 @@ function normalizePhone(v) {
 const CustomerSchema = new mongoose.Schema({
   userId:        { type: String, required: true, index: true },
   name:          { type: String, required: true, index: true },
-  email:         { type: String, required: true, unique: true, index: true },
+  email:         { type: String, required: true, index: true },
   phone:         {
     type: String,
     set: normalizePhone,
@@ -34,6 +34,7 @@ const CustomerSchema = new mongoose.Schema({
   createdAt:     { type: Date, default: Date.now },
 });
 
+CustomerSchema.index({ userId: 1, email: 1 }, { unique: true });
 CustomerSchema.index({ ltv: 1, lastOrderAt: 1, city: 1 });
 CustomerSchema.index({ tags: 1 });
 CustomerSchema.index({ totalOrders: 1 });
