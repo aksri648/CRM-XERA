@@ -177,26 +177,26 @@ export default function Docs() {
             />
             <H3>System Architecture</H3>
             <MermaidDiagram chart={`flowchart TB
-    subgraph Frontend["Frontend — React 18 + Vite :5173"]
-        FE[Dashboard · AI Chat · Landing · 14 Pages]
-        SSE["useSSE Hook\n(fetch + ReadableStream)"]
+    subgraph Frontend["Frontend - React 18 + Vite :5173"]
+        FE[Dashboard, AI Chat, Landing, 14 Pages]
+        SSE["useSSE Hook\nfetch + ReadableStream"]
         AX[Axios Client\nVITE_API_URL]
     end
 
-    subgraph Backend["Backend API — Express :8000"]
+    subgraph Backend["Backend API - Express :8000"]
         API[REST + SSE Endpoints]
-        AUTH["Auth Middleware\n(DEFAULT_USER_ID)"]
+        AUTH["Auth Middleware\nDEFAULT_USER_ID"]
         DB[Mongoose 8 ODM]
         AGENT_PROXY["Agent Proxy\n/api/agent/*"]
     end
 
-    subgraph Agent["Agent Service — FastAPI :8001"]
+    subgraph Agent["Agent Service - FastAPI :8001"]
         CR[CrewAI Orchestrator]
-        LLM[LLM Provider — BYOK]
+        LLM[LLM Provider - BYOK]
         TOOLS[23+ CRM Tools]
     end
 
-    subgraph Channel["Channel Service — Node.js :8002"]
+    subgraph Channel["Channel Service - Node.js :8002"]
         CH[Multi-channel Delivery]
         SIM[Delivery Simulator]
         CB[Async Callbacks]
@@ -248,7 +248,7 @@ export default function Docs() {
     LANDING["Landing.jsx\nDark marketing page"]
     DOCS["Docs.jsx\nTechnical documentation"]
     LAYOUT["AppLayout.jsx\nSidebar + Content + Bot"]
-    SIDEBAR["Sidebar.jsx\nNav groups · Badge polling"]
+    SIDEBAR["Sidebar.jsx\nNav groups, Badge polling"]
     CMD["AICommandCentre.jsx\nFull-screen AI chat overlay"]
     BOT["Floating Bot Button\nFixed bottom-right"]
     TOASTER["Sonner Toaster\ntop-right"]
@@ -273,12 +273,12 @@ export default function Docs() {
 
     subgraph Lib["Libraries"]
         API["api.js\nAxios instance"]
-        UTILS["utils.js\ncn · formatCurrency\nformatNumber · relativeTime"]
+        UTILS["utils.js\ncn, formatCurrency\nformatNumber, relativeTime"]
     end
 
     subgraph UI["UI Components"]
-        SHADCN["shadcn/ui (16)\nbutton · card · dialog\ntabs · input · badge ..."]
-        GLASS["Glass Components (9)\nglass-card · glass-button\nglass-dialog · glass-tabs ..."]
+        SHADCN["shadcn/ui 16\nbutton, card, dialog\ntabs, input, badge"]
+        GLASS["Glass Components 9\nglass-card, glass-button\nglass-dialog, glass-tabs"]
     end
 
     ROOT --> APP
@@ -326,7 +326,7 @@ export default function Docs() {
         AI["AICommandCentre\nFull-screen overlay"]
     end
 
-    subgraph CRM_Pages["CRM Pages (inside AppLayout)"]
+    subgraph CRM_Pages["CRM Pages inside AppLayout"]
         DASH["Dashboard\nKPI cards + quick actions"]
         AISTUDIO["AIStudio\nChat with SSE streaming"]
         OPPS["Opportunities\nAI scan + generate/dismiss"]
@@ -335,7 +335,7 @@ export default function Docs() {
         SEGS["Segments\nAI + manual builder"]
         CAMPS["Campaigns\nList + create modal"]
         CAMPDET["CampaignDetail\nFunnel chart + KPIs"]
-        ANA["Analytics\n3 tabs: channels/campaigns/funnel"]
+        ANA["Analytics\n3 tabs"]
         PIPE["Pipeline\n6-stage counters + timeline"]
         SET["Settings\nGeneral + AI config"]
     end
@@ -370,25 +370,25 @@ export default function Docs() {
             <H3>Route Map</H3>
             <MermaidDiagram chart={`flowchart TB
     MAIN["BrowserRouter"]
-    HOME["/ → Landing.jsx\nPublic marketing page"]
-    DOCS["/docs → Docs.jsx\nPublic documentation"]
+    HOME["/ to Landing.jsx\nPublic marketing page"]
+    DOCS["/docs to Docs.jsx\nPublic documentation"]
     APP["AppLayout\nSidebar + Content + Bot"]
 
-    subgraph CRM["CRM Routes (inside AppLayout)"]
-        DASH["/dashboard → Dashboard"]
-        AI["/ai-studio → AIStudio"]
-        OPPS["/opportunities → Opportunities"]
-        PROP["/proposals → AgentProposals"]
-        CUST["/customers → Customers"]
-        SEGS["/segments → Segments"]
-        CAMPS["/campaigns → Campaigns"]
-        CAMPD["/campaigns/:id → CampaignDetail"]
-        ANA["/analytics → Analytics"]
-        PIPE["/pipeline → PipelineMonitor"]
-        SET["/settings → Settings"]
+    subgraph CRM["CRM Routes inside AppLayout"]
+        DASH["/dashboard to Dashboard"]
+        AI["/ai-studio to AIStudio"]
+        OPPS["/opportunities to Opportunities"]
+        PROP["/proposals to AgentProposals"]
+        CUST["/customers to Customers"]
+        SEGS["/segments to Segments"]
+        CAMPS["/campaigns to Campaigns"]
+        CAMPD["/campaigns/:id to CampaignDetail"]
+        ANA["/analytics to Analytics"]
+        PIPE["/pipeline to PipelineMonitor"]
+        SET["/settings to Settings"]
     end
 
-    CATCH["* → Redirect to /"]
+    CATCH["* Redirect to /"]
 
     MAIN --> HOME
     MAIN --> DOCS
@@ -399,9 +399,9 @@ export default function Docs() {
             <H3>AppLayout Structure</H3>
             <MermaidDiagram chart={`graph TB
     AL["AppLayout"]
-    SIDEBAR["Sidebar\n260px fixed left\nDark theme #0f1923"]
-    MAIN["Main Content\nml-[260px] p-6\nbg-gray-50"]
-    BOT["Floating Bot Button\nFixed bottom-right\n#0fd4b4 circle"]
+    SIDEBAR["Sidebar\n260px fixed left\nDark theme"]
+    MAIN["Main Content\nml-260px p-6\nbg-gray-50"]
+    BOT["Floating Bot Button\nFixed bottom-right\nteal circle"]
     CMD["AICommandCentre\nModal overlay\nSSE chat"]
     TOAST["Sonner Toaster\ntop-right richColors"]
 
@@ -411,8 +411,8 @@ export default function Docs() {
     AL --> CMD
     AL --> TOAST
 
-    SIDEBAR -->|"5 groups"| NAV["MAIN · AUDIENCE\nENGAGE · ANALYZE\nSYSTEM"]
-    SIDEBAR -->|"Polls every 30s"| BADGES["Badge counts\nopportunities · proposals"]`} />
+    SIDEBAR -->|"5 groups"| NAV["MAIN, AUDIENCE\nENGAGE, ANALYZE\nSYSTEM"]
+    SIDEBAR -->|"Polls every 30s"| BADGES["Badge counts\nopportunities, proposals"]`} />
 
             <H3>Navigation Groups</H3>
             <GlassTable
@@ -439,59 +439,59 @@ export default function Docs() {
     participant User
     participant CMD as AICommandCentre
     participant SSE as useSSE Hook
-    participant BE as Backend API :8000
-    participant AG as Agent Service :8001
+    participant BE as Backend API
+    participant AG as Agent Service
     participant LLM as LLM Provider
 
-    User->>CMD: Type message + Send
-    CMD->>SSE: startStream(url, body)
+    User->>CMD: Type message and Send
+    CMD->>SSE: startStream url, body
     SSE->>BE: POST /api/agent/command
     BE->>AG: POST /crew/command
     AG->>LLM: Prompt + tools
     LLM-->>AG: Stream response
 
     loop SSE Stream
-        AG-->>BE: data: {type: "text", content: "..."}
+        AG-->>BE: text event
         BE-->>SSE: Forward SSE event
-        SSE-->>CMD: Buffer 50ms → events[]
-        CMD-->>User: Render text/chunk
+        SSE-->>CMD: Buffer 50ms then events
+        CMD-->>User: Render text chunk
     end
 
     loop Tool Call
-        AG-->>BE: data: {type: "tool_call", tool: "list_customers"}
+        AG-->>BE: tool_call event
         BE-->>SSE: Forward
         SSE-->>CMD: Append to events
         CMD-->>User: Show ToolCallBreadcrumb
         AG->>AG: Execute tool
-        AG-->>BE: data: {type: "tool_result", data: {...}}
+        AG-->>BE: tool_result event
         BE-->>SSE: Forward
         SSE-->>CMD: Append to events
         CMD-->>User: Render ToolResultCard
     end
 
     opt Destructive Action
-        AG-->>BE: data: {type: "pending_action", tool: "launch_campaign"}
+        AG-->>BE: pending_action event
         BE-->>SSE: Forward
         SSE-->>CMD: Append to events
         CMD-->>User: Show PendingActionCard
-        User->>CMD: Approve / Reject
+        User->>CMD: Approve or Reject
         CMD->>BE: POST /api/agent/execute
         BE->>AG: Execute action
     end`} />
 
             <H3>useSSE Hook Internals</H3>
             <MermaidDiagram chart={`flowchart TB
-    START["startStream(url, body)"]
+    START["startStream url, body"]
     ABORT["Abort previous stream"]
-    FETCH["fetch() with ReadableStream"]
-    READER["reader.read() loop"]
-    DECODE["TextDecoder → lines"]
-    PARSE["Parse 'data: ' prefixed lines"]
-    BUFFER["bufferRef.push(event)"]
-    FLUSH["setTimeout 50ms → flushBuffer"]
-    DONE{"event.type === 'done'?"}
-    SET["setEvents(prev + batch)"]
-    STOP["isStreaming = false"]
+    FETCH["fetch with ReadableStream"]
+    READER["reader.read loop"]
+    DECODE["TextDecoder to lines"]
+    PARSE["Parse data prefixed lines"]
+    BUFFER["bufferRef.push event"]
+    FLUSH["setTimeout 50ms flushBuffer"]
+    DONE{"event.type is done?"}
+    SET["setEvents prev plus batch"]
+    STOP["isStreaming false"]
 
     START --> ABORT
     ABORT --> FETCH
@@ -503,10 +503,7 @@ export default function Docs() {
     FLUSH --> DONE
     DONE -->|"No"| READER
     DONE -->|"Yes"| SET
-    SET --> STOP
-
-    style START fill:#0ea5e9,color:#fff
-    style STOP fill:#10b981,color:#fff`} />
+    SET --> STOP`} />
 
             <H3>AICommandCentre Event Types</H3>
             <GlassTable
@@ -541,12 +538,12 @@ export default function Docs() {
             <MermaidDiagram chart={`flowchart LR
     AI["AI Agent\nProposes action"]
     QUEUE["Pending Action\nQueued in message"]
-    CARD["PendingActionCard\nAmber border · Approve/Reject"]
+    CARD["PendingActionCard\nApprove or Reject"]
     APPROVE["User clicks Approve"]
     REJECT["User clicks Reject"]
     EXEC["POST /api/agent/execute\nBackend executes"]
-    OK["✅ Green border\nResult shown"]
-    FAIL["❌ Red error\nError message shown"]
+    OK["Green border\nResult shown"]
+    FAIL["Red border\nError message shown"]
 
     AI --> QUEUE
     QUEUE --> CARD
@@ -694,21 +691,21 @@ export default function Docs() {
             <P className="mt-4">Two patterns make the send path correct under crashes, retries, and out-of-order callbacks: a transactional outbox and an append-only event log.</P>
             <MermaidDiagram chart={`flowchart LR
     subgraph Ingest["1. Ingest"]
-        CSV["CSV / XLSX Import\nxlsx (SheetJS)"]
+        CSV["CSV / XLSX Import\nxlsx SheetJS"]
         VAL["Per-row Validation"]
         CSV --> VAL
     end
 
     subgraph Segment["2. Segment"]
         AI["AI NL Segmentation"]
-        DSL["Filter DSL → MongoDB query"]
+        DSL["Filter DSL to MongoDB query"]
         AI --> DSL
     end
 
     subgraph Outbox["3. Outbox Pattern"]
         TXN["DB Transaction"]
-        COMM[(Communications)]
-        OBX[(Outbox Events)]
+        COMM["Communications"]
+        OBX["Outbox Events"]
         TXN --> COMM
         TXN --> OBX
     end
@@ -728,7 +725,7 @@ export default function Docs() {
 
     subgraph Receipts["6. Receipts"]
         CB["Async Callbacks\nPOST /api/receipts"]
-        EVT[(CommEvent\nAppend-only)]
+        EVT["CommEvent\nAppend-only"]
         RANK["Monotonic\nRank Max"]
         CB --> EVT
         EVT --> RANK
@@ -792,13 +789,13 @@ export default function Docs() {
 
             <H3>Crew Architecture</H3>
             <MermaidDiagram chart={`graph TB
-    subgraph AgentService["Agent Service — FastAPI :8001"]
+    subgraph AgentService["Agent Service - FastAPI :8001"]
         direction TB
-        CC["/crew/chat → CampaignCrew"]
-        CMD["/crew/command → CommandCrew"]
-        OPP["/crew/opportunities → OpportunityCrew"]
-        INS["/crew/insights → InsightsCrew"]
-        SEG["/crew/segment → SegmentCrew"]
+        CC["/crew/chat CampaignCrew"]
+        CMD2["/crew/command CommandCrew"]
+        OPP["/crew/opportunities OpportunityCrew"]
+        INS["/crew/insights InsightsCrew"]
+        SEG2["/crew/segment SegmentCrew"]
     end
 
     subgraph Agents["10 Specialized Agents"]
@@ -815,7 +812,7 @@ export default function Docs() {
     end
 
     subgraph Tools["23+ CRM Tools"]
-        THTTP["http.py — Pending action queue"]
+        THTTP["http.py Pending action queue"]
         TCUST["customers.py"]
         TCAMP["campaigns.py"]
         TSEG["segments.py"]
@@ -829,13 +826,13 @@ export default function Docs() {
 
     CC --> CS
     CC --> CD
-    CMD --> IC
-    CMD --> DA
-    CMD --> CJ
+    CMD2 --> IC
+    CMD2 --> DA
+    CMD2 --> CJ
     OPP --> OS
     INS --> IR
-    SEG --> SB
-    SEG --> SGA
+    SEG2 --> SB
+    SEG2 --> SGA
 
     CS --> THTTP
     CD --> THTTP
@@ -899,11 +896,11 @@ export default function Docs() {
             <H3>Frontend Import Flow</H3>
             <MermaidDiagram chart={`flowchart LR
     USER["User drops CSV/XLSX"]
-    PARSE["xlsx (SheetJS)\nClient-side parsing"]
+    PARSE["xlsx SheetJS\nClient-side parsing"]
     VALID["Row validation\nname required, email format"]
     POST["POST /api/customers/bulk\nJSON body"]
-    RES["Response: imported/rejected"]
-    UI["Toast: X imported, Y rejected"]
+    RES["Response imported or rejected"]
+    UI["Toast X imported Y rejected"]
 
     USER --> PARSE
     PARSE --> VALID
@@ -922,60 +919,60 @@ export default function Docs() {
             <H3>Route Map</H3>
             <MermaidDiagram chart={`graph LR
     subgraph Customers["/api/customers"]
-        C1["GET / — List with search/filter"]
-        C2["POST / — Create one"]
-        C3["POST /bulk — Bulk JSON ingest"]
-        C4["GET /:id — Get one"]
-        C5["DELETE /:id — Delete one"]
-        C6["GET /distributions — Tag/city stats"]
+        C1["GET / - List with search/filter"]
+        C2["POST / - Create one"]
+        C3["POST /bulk - Bulk JSON ingest"]
+        C4["GET /:id - Get one"]
+        C5["DELETE /:id - Delete one"]
+        C6["GET /distributions - Tag/city stats"]
     end
 
     subgraph Orders["/api/orders"]
-        O1["GET / — List orders"]
+        O1["GET / - List orders"]
     end
 
     subgraph Segments["/api/segments"]
-        S1["GET / — List with counts"]
-        S2["POST / — Create"]
-        S3["POST /generate — AI generate"]
-        S4["POST /ai-generate — AI NL generate"]
-        S5["POST /preview — Preview audience"]
-        S6["GET /:id — Get one"]
-        S7["GET /:id/customers — Segment members"]
-        S8["DELETE /:id — Delete"]
+        S1["GET / - List with counts"]
+        S2["POST / - Create"]
+        S3["POST /generate - AI generate"]
+        S4["POST /ai-generate - AI NL generate"]
+        S5["POST /preview - Preview audience"]
+        S6["GET /:id - Get one"]
+        S7["GET /:id/customers - Segment members"]
+        S8["DELETE /:id - Delete"]
     end
 
     subgraph Campaigns["/api/campaigns"]
-        CA1["GET / — List"]
-        CA2["POST / — Create"]
-        CA3["GET /:id — Get one"]
-        CA4["PATCH /:id — Update"]
-        CA5["POST /:id/launch — Launch"]
-        CA6["GET /:id/stats — Live stats"]
-        CA7["GET /:id/communications — Sends"]
-        CA8["PATCH /:id/stop — Stop"]
-        CA9["DELETE /:id — Delete"]
+        CA1["GET / - List"]
+        CA2["POST / - Create"]
+        CA3["GET /:id - Get one"]
+        CA4["PATCH /:id - Update"]
+        CA5["POST /:id/launch - Launch"]
+        CA6["GET /:id/stats - Live stats"]
+        CA7["GET /:id/communications - Sends"]
+        CA8["PATCH /:id/stop - Stop"]
+        CA9["DELETE /:id - Delete"]
     end
 
     subgraph Analytics["/api/analytics"]
-        A1["GET /overview — KPIs"]
-        A2["GET /channels — Per-channel perf"]
-        A3["GET /campaigns/top — Top campaigns"]
-        A4["GET /funnel — Aggregate funnel"]
+        A1["GET /overview - KPIs"]
+        A2["GET /channels - Per-channel perf"]
+        A3["GET /campaigns/top - Top campaigns"]
+        A4["GET /funnel - Aggregate funnel"]
     end
 
-    subgraph AI["/api/agent"]
-        AI1["POST /chat — SSE stream"]
-        AI2["POST /command — SSE stream"]
-        AI3["POST /execute — Run tool"]
-        AI4["POST /confirm — Confirm action"]
-        AI5["GET /system-status — Health"]
+    subgraph AgentAPI["/api/agent"]
+        AI1["POST /chat - SSE stream"]
+        AI2["POST /command - SSE stream"]
+        AI3["POST /execute - Run tool"]
+        AI4["POST /confirm - Confirm action"]
+        AI5["GET /system-status - Health"]
     end
 
-    subgraph Other["Other"]
-        OP1["GET /api/opportunities — List"]
-        OP2["POST /api/opportunities/scan — Trigger"]
-        PR1["GET /api/proposals — List"]
+    subgraph OtherAPI["Other"]
+        OP1["GET /api/opportunities - List"]
+        OP2["POST /api/opportunities/scan - Trigger"]
+        PR1["GET /api/proposals - List"]
         PR2["PATCH /api/proposals/:id/approve"]
         PR3["PATCH /api/proposals/:id/reject"]
         PL1["GET /api/pipeline/status"]
@@ -1079,11 +1076,11 @@ export default function Docs() {
             <H3>Service Orchestration</H3>
             <MermaidDiagram chart={`flowchart TB
     DC["docker-compose.yml"]
-    MONGO["mongodb\nmongo:7\nport 27017\nVolume: mongo-data"]
-    BE["backend\nNode.js + Express\nport 8000\nDepends: mongodb"]
+    MONGO["mongodb\nmongo:7\nport 27017"]
+    BE["backend\nNode.js + Express\nport 8000"]
     AG["agent-service\nFastAPI + CrewAI\nport 8001"]
-    CH["channel-service\nNode.js\nport 8002\nDepends: mongodb"]
-    FE["frontend\nMulti-stage build\nNode → Nginx\nport 80"]
+    CH["channel-service\nNode.js\nport 8002"]
+    FE["frontend\nMulti-stage build\nNode then Nginx\nport 80"]
 
     DC --> MONGO
     DC --> BE
