@@ -17,6 +17,11 @@ import {
   Shield,
   Menu,
   X,
+  XCircle,
+  TrendingUp,
+  Clock,
+  Brain,
+  Target,
 } from 'lucide-react';
 import { GlassButton } from '../components/ui/glass-button';
 import { GlassCard, GlassCardContent, GlassCardTitle } from '../components/ui/glass-card';
@@ -161,6 +166,193 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        {/* Why AI-Powered Marketing */}
+        <section id="why-ai" className="relative scroll-mt-24 overflow-hidden py-16 sm:py-24">
+          {/* Ambient background gradients */}
+          <div className="pointer-events-none absolute inset-0 -z-10">
+            <div className="absolute left-1/4 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
+            <div className="absolute right-1/4 top-1/2 h-72 w-72 translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl" />
+          </div>
+
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <motion.div className="mx-auto max-w-3xl text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={stagger}>
+              <motion.div variants={fadeUp}>
+                <GlassBadge variant="primary" className="mb-4">
+                  <Brain className="mr-1.5 h-3 w-3" /> Why AI?
+                </GlassBadge>
+              </motion.div>
+              <motion.h2 variants={fadeUp} className="font-serif text-4xl font-light leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
+                Why <span className="font-serif italic text-cyan-400">AI-powered</span> marketing
+                <br className="hidden sm:block" />
+                <span className="font-serif italic">reach &amp; engagement?</span>
+              </motion.h2>
+              <motion.p variants={fadeUp} className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-gray-400 sm:text-base">
+                Traditional CRMs make humans do the slow work — exporting CSVs, writing SQL, drafting copy, picking channels.
+                AI does it in seconds, learns from every send, and never sleeps.
+              </motion.p>
+            </motion.div>
+
+            {/* Animated stats strip */}
+            <motion.div
+              className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-50px' }}
+              variants={stagger}
+            >
+              {[
+                { value: '10×', label: 'Faster campaign launch', color: '#06b6d4' },
+                { value: '3.2×', label: 'Higher engagement', color: '#8b5cf6' },
+                { value: '60%', label: 'Less manual work', color: '#ec4899' },
+                { value: '24/7', label: 'Always-on agent', color: '#10b981' },
+              ].map((s) => (
+                <motion.div
+                  key={s.label}
+                  variants={fadeUp}
+                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                  className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 text-center backdrop-blur-sm transition-colors hover:bg-white/[0.06]"
+                >
+                  <div
+                    className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                    style={{ boxShadow: `0 0 25px ${s.color}30, inset 0 0 15px ${s.color}10` }}
+                  />
+                  <p className="relative font-serif text-3xl font-light sm:text-4xl" style={{ color: s.color }}>{s.value}</p>
+                  <p className="relative mt-1.5 text-[11px] font-medium uppercase tracking-wider text-gray-500">{s.label}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Old vs New comparison */}
+            <motion.div
+              className="mt-14 grid gap-5 lg:grid-cols-2"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-50px' }}
+              variants={stagger}
+            >
+              {/* Traditional column */}
+              <motion.div variants={fadeUp}>
+                <div className="relative h-full overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br from-rose-950/30 via-white/[0.02] to-transparent p-6 sm:p-8">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10">
+                      <Clock className="h-5 w-5 text-rose-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-rose-400/70">The Old Way</p>
+                      <h3 className="text-lg font-semibold text-white">Traditional CRM</h3>
+                    </div>
+                  </div>
+                  <ul className="space-y-3">
+                    {[
+                      'Hours hand-writing SQL filters for each segment',
+                      'Copywriters drafting one message at a time',
+                      'Guessing which channel works for which customer',
+                      'Static dashboards that show what already happened',
+                      'Manual A/B tests that take weeks to converge',
+                    ].map((t) => (
+                      <li key={t} className="flex items-start gap-2.5 text-sm text-gray-400">
+                        <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-500/70" />
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+
+              {/* AI-Powered column */}
+              <motion.div variants={fadeUp}>
+                <div className="relative h-full overflow-hidden rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-950/30 via-violet-950/20 to-transparent p-6 sm:p-8">
+                  {/* Soft animated glow */}
+                  <div className="pointer-events-none absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-violet-500/10 to-pink-500/10 opacity-40 blur-xl" />
+                  <div className="relative mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10">
+                      <Sparkles className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400/80">The Xeno Way</p>
+                      <h3 className="text-lg font-semibold text-white">AI-Powered Engagement</h3>
+                    </div>
+                  </div>
+                  <ul className="relative space-y-3">
+                    {[
+                      'Plain-English segments compiled in milliseconds',
+                      'On-brand copy drafted per segment, per channel',
+                      'Per-customer channel routing learned from behavior',
+                      'Real-time attribution tied to revenue, not vanity metrics',
+                      'An autonomous agent that scans for opportunities 24/7',
+                    ].map((t) => (
+                      <li key={t} className="flex items-start gap-2.5 text-sm text-gray-200">
+                        <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-400" />
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+            </motion.div>
+
+            {/* Efficiency pillars */}
+            <motion.div
+              className="mt-14"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-50px' }}
+              variants={stagger}
+            >
+              <motion.p variants={fadeUp} className="mb-6 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-gray-500">
+                Where the efficiency comes from
+              </motion.p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {[
+                  {
+                    icon: Brain,
+                    title: 'Decisions, not dashboards',
+                    desc: 'The agent acts on insights instead of asking you to interpret charts. Less analysis, more outcomes.',
+                    color: '#06b6d4',
+                  },
+                  {
+                    icon: Target,
+                    title: 'Right person, right channel',
+                    desc: 'Per-customer routing picks WhatsApp, SMS, or Email from real engagement patterns — not blast-everyone-everywhere.',
+                    color: '#8b5cf6',
+                  },
+                  {
+                    icon: TrendingUp,
+                    title: 'Learns every send',
+                    desc: 'Every callback feeds attribution. Tomorrow’s campaign is sharper than today’s — no manual tuning needed.',
+                    color: '#ec4899',
+                  },
+                ].map((p) => {
+                  const Icon = p.icon;
+                  return (
+                    <motion.div
+                      key={p.title}
+                      variants={fadeUp}
+                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                      className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:bg-white/[0.06]"
+                    >
+                      <div
+                        className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                        style={{ boxShadow: `0 0 30px ${p.color}25` }}
+                      />
+                      <div
+                        className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-500 group-hover:scale-110"
+                        style={{ backgroundColor: `${p.color}15`, color: p.color }}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h4 className="mb-1.5 text-base font-semibold text-white">{p.title}</h4>
+                      <p className="text-sm leading-relaxed text-gray-400">{p.desc}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        <GlassSeparator />
 
         {/* How It Works */}
         <section id="how" className="scroll-mt-24 py-16 sm:py-24">
