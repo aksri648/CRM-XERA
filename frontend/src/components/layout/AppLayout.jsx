@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { Toaster } from 'src/components/ui/sonner';
@@ -8,11 +8,8 @@ import AICommandCentre from '../AICommandCentre';
 import { Bot } from 'lucide-react';
 
 export default function AppLayout() {
-
   const [showCommandCentre, setShowCommandCentre] = useState(false);
   const [showFloatingBot, setShowFloatingBot] = useState(false);
-
-
 
   useEffect(() => {
     setShowFloatingBot(true);

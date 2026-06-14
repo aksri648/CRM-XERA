@@ -9,7 +9,7 @@ def create_command_agent(llm: LLM) -> Agent:
             "Use the available tools to answer the user's question or carry out the user's "
             "request against the Xeno CRM. Chain multiple tools when needed (e.g. list first "
             "to find an id, then act). When a write action is needed (create, update, delete, "
-            "launch, stop, approve, reject), call the corresponding tool — it will queue the "
+            "launch, stop, approve, reject), call the corresponding tool — it will prepare the "
             "action for human approval. After tools return, write a concise final answer "
             "summarizing what you found or what is awaiting approval.\n\n"
             "CRITICAL RULES ABOUT IDS:\n"

@@ -12,13 +12,14 @@ export async function launchCampaign(campaign, customers) {
   const communications = [];
 
   const commDocs = customers.map(customer => ({
+    userId: campaign.userId,
     campaignId: campaign._id,
     customerId: customer._id,
     message: (campaign.messageTemplate || 'Hello {name}')
       .replace('{name}', customer.name)
       .replace('{brand}', brandName),
     channel: campaign.channel,
-    status: 'queued',
+    status: 'pending',
   }));
 
   const created = await Communication.insertMany(commDocs);
@@ -59,9 +60,10 @@ export async function launchCampaign(campaign, customers) {
   }
 
   await PipelineEvent.create({
+    userId: campaign.userId,
     type: 'campaign_dispatched',
     title: 'Campaign Dispatched',
-    description: `${campaign.name} → ${campaign.channel} Queue`,
+    description: `${campaign.name} → ${campaign.channel} Dispatched`,
     badge: 'Event',
     campaignId: campaign._id,
   });

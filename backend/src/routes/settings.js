@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import Settings from '../models/Settings.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireAuth);
 
 router.get('/', async (req, res, next) => {
   try {
-    let settings = await Settings.findOne({ singleton: 'global' });
+    let settings = await Settings.findOne({ userId: req.userId });
     if (!settings) {
-      settings = await Settings.create({ singleton: 'global' });
+      settings = await Settings.create({ userId: req.userId });
     }
     res.json(settings);
   } catch (err) { next(err); }
@@ -16,18 +18,11 @@ router.get('/', async (req, res, next) => {
 router.put('/', async (req, res, next) => {
   try {
     const settings = await Settings.findOneAndUpdate(
-      { singleton: 'global' },
-      { ...req.body, singleton: 'global' },
+      { userId: req.userId },
+      { ...req.body, userId: req.userId },
       { new: true, upsert: true }
     );
     res.json(settings);
-  } catch (err) { next(err); }
-});
-
-router.post('/test-telegram', async (req, res, next) => {
-  try {
-    const { token, chatId } = req.body;
-    res.json({ success: true, message: 'Test message sent (simulated)' });
   } catch (err) { next(err); }
 });
 

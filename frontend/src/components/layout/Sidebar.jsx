@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
+import { UserButton, useUser } from '@clerk/react';
 
 import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog } from 'lucide-react';
 import api from '../../lib/api';
@@ -8,7 +9,7 @@ const navGroups = [
   {
     label: 'MAIN',
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+      { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { label: 'AI Campaign Studio', icon: Sparkles, path: '/ai-studio', badge: 'New', badgeTeal: true },
       { label: 'Opportunities', icon: Lightbulb, path: '/opportunities', badgeKey: 'opportunities' },
       { label: 'Agent Proposals', icon: Bot, path: '/proposals', badgeKey: 'proposals' },
@@ -44,7 +45,10 @@ const navGroups = [
 ];
 
 export default function Sidebar({ onOpenCommandCentre }) {
+  const { user } = useUser();
   const [badges, setBadges] = useState({ opportunities: 0, proposals: 0 });
+
+  const displayName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Account';
 
   useEffect(() => {
     const fetchBadges = async () => {
@@ -57,7 +61,9 @@ export default function Sidebar({ onOpenCommandCentre }) {
       } catch (e) {}
     };
     fetchBadges();
-    const interval = setInterval(fetchBadges, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchBadges();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -98,7 +104,7 @@ export default function Sidebar({ onOpenCommandCentre }) {
                 <NavLink
                   key={item.label}
                   to={item.path}
-                  end={item.path === '/'}
+                  end={item.path === '/dashboard'}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
                       isActive
@@ -123,11 +129,16 @@ export default function Sidebar({ onOpenCommandCentre }) {
       </nav>
 
       <div className="border-t border-white/10 p-4 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white text-xs font-bold">
-          A
-        </div>
+        <UserButton
+          afterSignOutUrl="/"
+          appearance={{
+            elements: {
+              avatarBox: 'w-8 h-8',
+            },
+          }}
+        />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-slate-300 truncate">Admin</p>
+          <p className="text-sm text-slate-300 break-all leading-snug">{displayName}</p>
         </div>
       </div>
     </aside>

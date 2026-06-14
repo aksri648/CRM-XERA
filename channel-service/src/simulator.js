@@ -13,7 +13,7 @@ export const ENGAGEMENT_FUNNEL = {
 };
 
 export const DELAYS = {
-  queued_to_sent:       [500, 1500],
+  pending_to_sent:      [500, 1500],
   sent_to_delivered:    [1000, 4000],
   delivered_to_opened:  [3000, 15000],
   opened_to_read:       [2000, 8000],

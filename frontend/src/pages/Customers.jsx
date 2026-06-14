@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Upload } from 'lucide-react';
+import { Search, Upload, Mail, Phone, MapPin, User, Calendar, ShoppingCart, Tag, IndianRupee, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import api from '../lib/api';
@@ -10,6 +9,7 @@ import { Input } from 'src/components/ui/input';
 import { Badge } from 'src/components/ui/badge';
 import { Card, CardContent } from 'src/components/ui/card';
 import { Avatar, AvatarFallback } from 'src/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from 'src/components/ui/dialog';
 
 const tags = ['All', 'Active', 'VIP', 'At Risk', 'New'];
 
@@ -41,7 +41,13 @@ function normalizeRow(row) {
   if (!name || !email) return null;
   out.name = String(name).trim();
   out.email = String(email).trim().toLowerCase();
-  const phone = pick('phone');         if (phone !== undefined) out.phone = String(phone).trim();
+  const phone = pick('phone');
+  if (phone !== undefined) {
+    const digits = String(phone).replace(/\D/g, '');
+    let normalized = digits;
+    if (digits.length === 12 && digits.startsWith('91')) normalized = digits.slice(2);
+    if (normalized.length === 10 && /^[6-9]\d{9}$/.test(normalized)) out.phone = normalized;
+  }
   const city = pick('city');           if (city !== undefined) out.city = String(city).trim();
   const gender = pick('gender');
   if (gender !== undefined) {
@@ -64,7 +70,6 @@ function normalizeRow(row) {
 }
 
 export default function Customers() {
-  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [customers, setCustomers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -74,6 +79,9 @@ export default function Customers() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerOrders, setCustomerOrders] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -91,6 +99,18 @@ export default function Customers() {
     const timer = setTimeout(fetchCustomers, 300);
     return () => clearTimeout(timer);
   }, [fetchCustomers]);
+
+  const handleCustomerClick = async (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerOrders([]);
+    setDetailLoading(true);
+    try {
+      const res = await api.get(`/api/customers/${customer._id}`);
+      setSelectedCustomer(res.data.customer);
+      setCustomerOrders(res.data.orders || []);
+    } catch (e) {}
+    setDetailLoading(false);
+  };
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -212,7 +232,7 @@ export default function Customers() {
         <>
           <div className="grid grid-cols-3 gap-4">
             {customers.map(c => (
-              <Card key={c._id} onClick={() => navigate(`/customers/${c._id}`)} className="cursor-pointer hover:shadow-md transition-shadow">
+              <Card key={c._id} onClick={() => handleCustomerClick(c)} className="cursor-pointer hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <Avatar className="w-10 h-10">
@@ -220,9 +240,9 @@ export default function Customers() {
                         {getInitials(c.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-semibold text-gray-900">{c.name}</p>
-                      <p className="text-sm text-gray-500">{c.email}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 break-words">{c.name}</p>
+                      <p className="text-sm text-gray-500 break-all">{c.email}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
@@ -244,6 +264,114 @@ export default function Customers() {
           )}
         </>
       )}
+
+      <Dialog open={!!selectedCustomer} onOpenChange={(open) => { if (!open) setSelectedCustomer(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          {selectedCustomer && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Customer Profile</DialogTitle>
+              </DialogHeader>
+
+              <div className="flex items-center gap-4 mt-2">
+                <Avatar className="w-16 h-16">
+                  <AvatarFallback className="text-white text-xl font-bold" style={{ backgroundColor: getAvatarColor(selectedCustomer.name) }}>
+                    {getInitials(selectedCustomer.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-lg font-bold text-gray-900">{selectedCustomer.name}</p>
+                  <p className="text-sm text-gray-500">{selectedCustomer.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
+                  <Phone size={14} className="text-gray-400" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase">Phone</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.phone ? selectedCustomer.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') : '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
+                  <MapPin size={14} className="text-gray-400" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase">City</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.city || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
+                  <User size={14} className="text-gray-400" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase">Gender</p>
+                    <p className="text-sm font-medium text-gray-900 capitalize">{selectedCustomer.gender || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
+                  <Calendar size={14} className="text-gray-400" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase">Age</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.age || '—'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                <div className="text-center bg-teal-50 rounded-lg py-3">
+                  <p className="text-xs text-gray-500">LTV</p>
+                  <p className="text-lg font-bold text-[#0fd4b4]">{formatCurrency(selectedCustomer.ltv || 0)}</p>
+                </div>
+                <div className="text-center bg-blue-50 rounded-lg py-3">
+                  <p className="text-xs text-gray-500">Orders</p>
+                  <p className="text-lg font-bold text-blue-600">{formatNumber(selectedCustomer.totalOrders || 0)}</p>
+                </div>
+                <div className="text-center bg-purple-50 rounded-lg py-3">
+                  <p className="text-xs text-gray-500">Last Order</p>
+                  <p className="text-lg font-bold text-purple-600">{selectedCustomer.lastOrderAt ? relativeTime(selectedCustomer.lastOrderAt) : '—'}</p>
+                </div>
+              </div>
+
+              {selectedCustomer.tags?.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-400 uppercase mb-1.5">Tags</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedCustomer.tags.map(tag => (
+                      <Badge key={tag} variant="outline" className="text-xs border-[#0fd4b4] text-[#0fd4b4]">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-3 text-center">
+                <p className="text-[10px] text-gray-400">Customer since {selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+              </div>
+
+              {customerOrders.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs text-gray-400 uppercase mb-2">Recent Orders</p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {customerOrders.map(order => (
+                      <div key={order._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart size={12} className="text-gray-400" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{order.productName}</p>
+                            <p className="text-[10px] text-gray-400 capitalize">{order.category}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(order.amount)}</p>
+                          <p className="text-[10px] text-gray-400">{order.orderedAt ? relativeTime(order.orderedAt) : ''}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

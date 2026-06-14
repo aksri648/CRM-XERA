@@ -17,15 +17,27 @@ class SegmentCrew:
     def run(self, context: dict) -> dict:
         base_url = os.getenv('BACKEND_URL', 'http://localhost:8000')
         token = context.get('token', '')
+        user_prompt = context.get('prompt', '')
 
         set_segment_http_tool(base_url, token)
 
+        prompt_section = ""
+        if user_prompt:
+            prompt_section = f"""
+
+ADDITIONAL USER INSTRUCTIONS:
+The user has provided the following instructions for segment creation. Follow these carefully while also using the customer data distributions:
+
+"{user_prompt}"
+
+Create segments that align with what the user described above. You may create fewer or more segments as appropriate based on their request."""
+
         task = Task(
-            description="""You are the AI Segmentation Engine for Xeno CRM.
+            description=f"""You are the AI Segmentation Engine for Xeno CRM.
 
 Your job:
 1. Use fetch_customer_distributions to get a comprehensive view of the customer base
-2. Analyze the distributions to identify 5-8 meaningful audience segments
+2. Analyze the distributions to identify meaningful audience segments
 3. Create precise segment definitions with MongoDB filter rules
 4. Use save_segments to store them in the database
 
@@ -37,11 +49,11 @@ Segment types to consider:
 - Win-Back Candidates: Previously active, now lapsing (30-60 days)
 - High-Potential: New but with high first purchase value
 - Category Buyers: Based on purchase categories (fashion, electronics, etc.)
-
+{prompt_section}
 Each segment MUST have:
 - name: short descriptive name (e.g., "VIP Customers", "At-Risk High-Value")
 - description: 1-2 sentence explanation of who this segment is
-- filterRules: array of {field, operator, value}
+- filterRules: array of {{field, operator, value}}
   - field options: ltv, totalOrders, last_order_days, city, gender, age, tags, category
   - operator options for numeric: gt, gte, lt, lte, eq
   - operator options for text: contains (regex match)
@@ -52,12 +64,12 @@ IMPORTANT: Output a JSON array of segments to be saved. Use the save_segments to
 
 Example segment:
 [
-  {
+  {{
     "name": "VIP Customers",
     "description": "Top-spending customers with LTV above ₹10,000 who demonstrate strong purchase history",
-    "filterRules": [{"field": "ltv", "operator": "gte", "value": 10000}],
+    "filterRules": [{{"field": "ltv", "operator": "gte", "value": 10000}}],
     "logic": "AND"
-  }
+  }}
 ]
 
 Return ONLY the JSON array - no explanation, no markdown, just the raw JSON for save_segments.""",

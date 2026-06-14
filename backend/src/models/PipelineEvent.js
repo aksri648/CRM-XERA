@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const PipelineEventSchema = new mongoose.Schema({
+  userId:      { type: String, required: true, index: true },
   type:        { type: String },
   title:       { type: String },
   description: { type: String },

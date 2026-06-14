@@ -15,8 +15,13 @@ export default function Settings() {
     timezone: 'Asia/Kolkata',
     currency: 'INR',
     aiModel: 'default',
+    customModel: '',
     scanSchedule: 'daily_6am',
     autoApprove: false,
+    configSource: 'env',
+    openaiBaseUrl: '',
+    openaiApiKey: '',
+    mongodbUrl: '',
   });
 
   useEffect(() => {
@@ -72,13 +77,72 @@ export default function Settings() {
           <CardTitle className="mb-4">AI Configuration</CardTitle>
           <div className="space-y-4">
             <div>
+              <Label className="text-gray-600 block mb-1">Configuration Source</Label>
+              <Select value={settings.configSource} onValueChange={(v) => setSettings({...settings, configSource: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="env">Use Environment Variables</SelectItem>
+                  <SelectItem value="manual">Manual Configuration</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-gray-400">
+                {settings.configSource === 'env' ? 'App reads credentials from .env file on the server.' : 'Override env vars with custom values below.'}
+              </p>
+            </div>
+
+            {settings.configSource === 'manual' && (
+              <div className="space-y-4 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4">
+                <div>
+                  <Label className="text-gray-600 block mb-1">OpenAI Base URL</Label>
+                  <Input
+                    placeholder="https://api.openai.com/v1"
+                    value={settings.openaiBaseUrl}
+                    onChange={e => setSettings({...settings, openaiBaseUrl: e.target.value})}
+                  />
+                  <p className="mt-1 text-xs text-gray-400">Base URL for any OpenAI-compatible API (OpenAI, Together, Groq, local, etc.)</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600 block mb-1">API Key</Label>
+                  <Input
+                    type="password"
+                    placeholder="sk-..."
+                    value={settings.openaiApiKey}
+                    onChange={e => setSettings({...settings, openaiApiKey: e.target.value})}
+                  />
+                  <p className="mt-1 text-xs text-gray-400">Your API key. Stored locally, never sent to our servers.</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600 block mb-1">MongoDB URL</Label>
+                  <Input
+                    placeholder="mongodb://localhost:27017/xeno"
+                    value={settings.mongodbUrl}
+                    onChange={e => setSettings({...settings, mongodbUrl: e.target.value})}
+                  />
+                  <p className="mt-1 text-xs text-gray-400">MongoDB connection string for your CRM database.</p>
+                </div>
+              </div>
+            )}
+
+            <div>
               <Label className="text-gray-600 block mb-1">AI Model</Label>
               <Select value={settings.aiModel} onValueChange={(v) => setSettings({...settings, aiModel: v})}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="default">Default (from env)</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                  <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                  <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                  <SelectItem value="custom">Custom Model</SelectItem>
                 </SelectContent>
               </Select>
+              {settings.aiModel === 'custom' && (
+                <Input
+                  className="mt-2"
+                  placeholder="e.g. claude-3-opus, llama-3-70b, mistral-large"
+                  value={settings.customModel}
+                  onChange={e => setSettings({...settings, customModel: e.target.value})}
+                />
+              )}
             </div>
             <div>
               <Label className="text-gray-600 block mb-1">Autonomous Scanning Schedule</Label>

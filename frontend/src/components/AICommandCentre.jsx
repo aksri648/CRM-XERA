@@ -131,8 +131,8 @@ function ToolResultCard({ tool, data }) {
   if (tool === 'get_pipeline_status' || tool === 'get_analytics_overview' || tool === 'get_channels_analytics' || tool === 'get_funnel' || tool === 'get_settings' || tool === 'get_customer_distributions') {
     return <KeyValueCard data={data} />;
   }
-  if (tool === 'get_customer' || tool === 'get_campaign' || tool === 'get_campaign_stats' || tool === 'get_segment' || tool === 'get_proposal' || tool === 'get_ab_test') {
-    return <KeyValueCard data={data?.campaign || data?.customer || data?.segment || data?.proposal || data?.ab_test || data?.stats || data} />;
+  if (tool === 'get_customer' || tool === 'get_campaign' || tool === 'get_campaign_stats' || tool === 'get_segment' || tool === 'get_proposal') {
+    return <KeyValueCard data={data?.campaign || data?.customer || data?.segment || data?.proposal || data?.stats || data} />;
   }
   return <RawJsonCard data={data} />;
 }
@@ -384,16 +384,12 @@ export default function AICommandCentre({ onClose }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 p-4 bg-gray-50 border-b border-gray-100">
+        <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 border-b border-gray-100">
           <div className="text-center">
-            <p className="text-xs text-gray-500">WORKER</p>
+            <p className="text-xs text-gray-500">CHANNEL HEALTH</p>
             <p className={`text-sm font-bold ${sysStatus?.channel_service_health === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
               {sysStatus?.channel_service_health === 'ok' ? 'Healthy' : 'Degraded'}
             </p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-500">QUEUE</p>
-            <p className="text-sm font-bold text-gray-900">{formatNumber(sysStatus?.queue_pending || 0)}</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-500">ACTIVE RUNS</p>

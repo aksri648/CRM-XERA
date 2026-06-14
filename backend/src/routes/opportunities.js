@@ -4,54 +4,64 @@ import AgentProposal from '../models/AgentProposal.js';
 import Customer from '../models/Customer.js';
 import Campaign from '../models/Campaign.js';
 import Order from '../models/Order.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireAuth);
 
 router.get('/', async (req, res, next) => {
   try {
     const { status } = req.query;
-    const query = status ? { status } : {};
-    const opportunities = await Opportunity.find(query).sort({ createdAt: -1 });
+    const query = { userId: req.userId };
+    if (status) query.status = status;
+    const opportunities = await Opportunity.find(query).sort({ createdAt: -1 }).lean();
     res.json({ opportunities });
   } catch (err) { next(err); }
 });
 
 router.get('/count', async (req, res, next) => {
   try {
-    const count = await Opportunity.countDocuments({ status: 'active' });
+    const count = await Opportunity.countDocuments({ userId: req.userId, status: 'active' });
     res.json({ count });
   } catch (err) { next(err); }
 });
 
 router.post('/scan', async (req, res, next) => {
   try {
+    const userId = req.userId;
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
 
-    const totalCustomers = await Customer.countDocuments();
-    const customersByCity = await Customer.aggregate([
-      { $group: { _id: '$city', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 },
-    ]);
-    const ltvSegments = await Customer.aggregate([
-      {
-        $bucket: {
-          groupBy: '$ltv',
-          boundaries: [0, 1000, 5000, 10000, 50000, 100000],
-          default: 'unknown',
-          output: { count: { $sum: 1 } },
+    const [totalCustomers, customersByCity, ltvSegments, totalOrders, topCampaigns, lapsedCount] = await Promise.all([
+      Customer.countDocuments({ userId }),
+      Customer.aggregate([
+        { $match: { userId } },
+        { $group: { _id: '$city', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+      ]),
+      Customer.aggregate([
+        { $match: { userId } },
+        {
+          $bucket: {
+            groupBy: '$ltv',
+            boundaries: [0, 1000, 5000, 10000, 50000, 100000],
+            default: 'unknown',
+            output: { count: { $sum: 1 } },
+          },
         },
-      },
+      ]),
+      Order.countDocuments({ userId }),
+      Campaign.find({ userId, status: 'completed' })
+        .sort({ 'stats.revenue': -1 })
+        .limit(5)
+        .select('name channel stats')
+        .lean(),
+      Customer.countDocuments({
+        userId,
+        lastOrderAt: { $lt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) },
+        ltv: { $gt: 0 },
+      }),
     ]);
-    const totalOrders = await Order.countDocuments();
-    const topCampaigns = await Campaign.find({ status: 'completed' })
-      .sort({ 'stats.revenue': -1 })
-      .limit(5)
-      .lean();
-    const lapsedCount = await Customer.countDocuments({
-      lastOrderAt: { $lt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) },
-      ltv: { $gt: 0 },
-    });
 
     const context = {
       total_customers: totalCustomers,
@@ -85,17 +95,15 @@ router.post('/scan', async (req, res, next) => {
     }
     const result = await response.json();
     const opps = result.opportunities || [];
-    const created = [];
-    for (const opp of opps) {
-      const doc = await Opportunity.create({
-        title: opp.title,
-        description: opp.description,
-        audienceDescription: opp.audience_description,
-        expectedRevenue: opp.expected_revenue_inr,
-        aiReasoning: opp.ai_reasoning,
-      });
-      created.push(doc);
-    }
+    const docs = opps.map(opp => ({
+      userId,
+      title: opp.title,
+      description: opp.description,
+      audienceDescription: opp.audience_description,
+      expectedRevenue: opp.expected_revenue_inr,
+      aiReasoning: opp.ai_reasoning,
+    }));
+    const created = docs.length > 0 ? await Opportunity.insertMany(docs) : [];
     res.json({ opportunities: created, count: created.length });
   } catch (err) {
     if (err.name === 'AbortError') {
@@ -107,7 +115,10 @@ router.post('/scan', async (req, res, next) => {
 
 router.patch('/:id/dismiss', async (req, res, next) => {
   try {
-    const opp = await Opportunity.findByIdAndUpdate(req.params.id, { status: 'dismissed' });
+    const opp = await Opportunity.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      { status: 'dismissed' }
+    );
     if (!opp) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
   } catch (err) { next(err); }
@@ -115,9 +126,10 @@ router.patch('/:id/dismiss', async (req, res, next) => {
 
 router.post('/:id/generate-campaign', async (req, res, next) => {
   try {
-    const opp = await Opportunity.findById(req.params.id);
+    const opp = await Opportunity.findOne({ _id: req.params.id, userId: req.userId }).lean();
     if (!opp) return res.status(404).json({ error: 'Not found' });
     const proposal = await AgentProposal.create({
+      userId: req.userId,
       title: `Campaign: ${opp.title}`,
       aiReasoning: opp.aiReasoning,
       status: 'pending',

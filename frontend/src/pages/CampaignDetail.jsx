@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, CheckCircle, Eye, MousePointerClick, TrendingUp, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -17,6 +17,14 @@ export default function CampaignDetail() {
   const [commPage, setCommPage] = useState(1);
   const [commTotal, setCommTotal] = useState(0);
 
+  const fetchStats = useCallback(async () => {
+    try { const r = await api.get(`/api/campaigns/${id}/stats`); setStats(r.data.stats || r.data); } catch (e) {}
+  }, [id]);
+
+  const fetchComms = useCallback(async () => {
+    try { const r = await api.get(`/api/campaigns/${id}/communications?page=${commPage}&limit=25`); setCommunications(r.data.communications || r.data.comms || []); setCommTotal(r.data.total || 0); } catch (e) {}
+  }, [id, commPage]);
+
   useEffect(() => {
     fetchStats();
     fetchComms();
@@ -29,14 +37,6 @@ export default function CampaignDetail() {
       return () => clearInterval(interval);
     }
   }, [campaign?.status, fetchStats]);
-
-  const fetchStats = async () => {
-    try { const r = await api.get(`/api/campaigns/${id}/stats`); setStats(r.data.stats || r.data); } catch (e) {}
-  };
-
-  const fetchComms = async () => {
-    try { const r = await api.get(`/api/campaigns/${id}/communications?page=${commPage}&limit=25`); setCommunications(r.data.communications || r.data.comms || []); setCommTotal(r.data.total || 0); } catch (e) {}
-  };
 
   const handleLaunch = async () => {
     try { await api.post(`/api/campaigns/${id}/launch`); fetchStats(); } catch (e) {}

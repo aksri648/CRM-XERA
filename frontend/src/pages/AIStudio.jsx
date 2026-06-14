@@ -165,7 +165,7 @@ export default function AIStudio() {
         <Sparkles size={64} className="text-[#0fd4b4] animate-pulse" />
         <h2 className="text-xl font-bold text-gray-900">What marketing goal would you like to achieve?</h2>
         <p className="text-gray-500 text-sm max-w-lg text-center">
-          Describe your objective and Xeno AI will generate a complete campaign strategy including audience, channels, messaging, and A/B tests.
+          Describe your objective and Xeno AI will generate a complete campaign strategy including audience, channels, messaging.
         </p>
         <div className="flex flex-wrap justify-center gap-2 mt-4">
           {suggestionPills.map(pill => (

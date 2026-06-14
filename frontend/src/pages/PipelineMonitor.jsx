@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Send, Package, Settings, Mail, CheckCheck, Eye, MousePointerClick, DollarSign } from 'lucide-react';
+import { RefreshCw, Send, Package, Mail, CheckCheck, Eye, MousePointerClick, DollarSign } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import api from '../lib/api';
 import { formatNumber } from '../lib/utils';
 
-const stageIcons = [Send, Package, Settings, Mail, CheckCheck, Eye, MousePointerClick, DollarSign];
-const stageLabels = ['Campaign', 'Queue', 'Worker', 'Sent', 'Delivered', 'Opened', 'Clicked', 'Converted'];
-const stageKeys = ['active_campaigns', 'queue_pending', 'workers_processing', 'total_sent', 'total_delivered', 'total_opened', 'total_clicked', 'total_converted'];
+const stageIcons = [Send, Package, Mail, CheckCheck, Eye, MousePointerClick, DollarSign];
+const stageLabels = ['Campaign', 'Sent', 'Delivered', 'Opened', 'Clicked', 'Converted'];
+const stageKeys = ['active_campaigns', 'total_sent', 'total_delivered', 'total_opened', 'total_clicked', 'total_converted'];
 
 export default function PipelineMonitor() {
   const [status, setStatus] = useState(null);
@@ -26,11 +26,13 @@ export default function PipelineMonitor() {
       } catch (err) {}
     };
     fetch();
-    const interval = setInterval(fetch, 5000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetch();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const badgeVariant = { Event: 'outline', OK: 'secondary', Retry: 'default', Failed: 'destructive' };
+  const badgeVariant = { Event: 'outline', OK: 'secondary', Failed: 'destructive' };
 
   return (
     <div>
@@ -43,7 +45,7 @@ export default function PipelineMonitor() {
 
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="grid grid-cols-8 gap-3">
+          <div className="grid grid-cols-6 gap-3">
             {stageKeys.map((key, i) => {
               const Icon = stageIcons[i];
               return (
@@ -83,22 +85,20 @@ export default function PipelineMonitor() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Queue Depth</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Delivery Summary</CardTitle></CardHeader>
           <CardContent className="p-6">
-            <p className="text-5xl font-bold text-[#0fd4b4] text-center">{formatNumber(status?.queue_pending || 0)}</p>
-            <p className="text-sm text-gray-500 text-center mt-2">Messages in Queue</p>
-            <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-500">{formatNumber(status?.workers_processing || 0)}</p>
-                <p className="text-xs text-gray-500">Processing</p>
+                <p className="text-2xl font-bold text-blue-500">{formatNumber(status?.total_sent || 0)}</p>
+                <p className="text-xs text-gray-500">Sent</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-500">{formatNumber(status?.queue_pending || 0)}</p>
-                <p className="text-xs text-gray-500">Pending</p>
+                <p className="text-2xl font-bold text-green-500">{formatNumber(status?.total_delivered || 0)}</p>
+                <p className="text-xs text-gray-500">Delivered</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-red-500">0</p>
-                <p className="text-xs text-gray-500">Retry</p>
+                <p className="text-2xl font-bold text-red-500">{formatNumber(status?.total_converted || 0)}</p>
+                <p className="text-xs text-gray-500">Converted</p>
               </div>
             </div>
           </CardContent>

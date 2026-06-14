@@ -4,7 +4,7 @@ from .http import get_http_tool, record_tool_call, record_tool_result, _safe_sum
 
 @tool("get_pipeline_status")
 def get_pipeline_status() -> str:
-    """Get real-time pipeline status: queue depth, worker health, active campaigns."""
+    """Get real-time pipeline status: active campaigns, delivery stats, channel health."""
     http = get_http_tool()
     if not http:
         return 'Error: backend not initialized'

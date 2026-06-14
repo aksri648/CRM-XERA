@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Users, Megaphone, BarChart3, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Upload, Users, Megaphone, BarChart3, ArrowUpRight, Sparkles, Database } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from "src/components/ui/button";
 import { Card, CardContent } from "src/components/ui/card";
 import { Badge } from "src/components/ui/badge";
@@ -21,20 +22,43 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
+  const [seeding, setSeeding] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [overviewRes, campaignsRes] = await Promise.all([
+        api.get('/api/analytics/overview'),
+        api.get('/api/campaigns?limit=5&sort=-createdAt'),
+      ]);
+      setOverview(overviewRes.data);
+      setCampaigns(campaignsRes.data.campaigns || []);
+    } catch (e) {}
+  };
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const [overviewRes, campaignsRes] = await Promise.all([
-          api.get('/api/analytics/overview'),
-          api.get('/api/campaigns?limit=5&sort=-createdAt'),
-        ]);
-        setOverview(overviewRes.data);
-        setCampaigns(campaignsRes.data.campaigns || []);
-      } catch (e) {}
-    };
-    fetch();
+    fetchData();
   }, []);
+
+  const handleSeedMockData = async () => {
+    if (seeding) return;
+    const confirmed = window.confirm(
+      'This will wipe your existing data and load fresh demo data across all pages (customers, segments, campaigns, opportunities, proposals, pipeline events). Continue?'
+    );
+    if (!confirmed) return;
+
+    setSeeding(true);
+    const toastId = toast.loading('Generating mock data... this takes 15-30 seconds');
+    try {
+      await api.post('/api/setup/seed', null, { timeout: 180000 });
+      toast.success('Mock data loaded across all pages', { id: toastId });
+      await fetchData();
+    } catch (e) {
+      const detail = e?.response?.data?.error || e?.message || 'Unknown error';
+      toast.error(`Mock data failed: ${detail}`, { id: toastId });
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   return (
     <div>
@@ -44,6 +68,24 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500 mt-1">Overview of your campaign engagement performance</p>
         </div>
         <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSeedMockData}
+            disabled={seeding}
+            className="border-purple-200 text-purple-700 hover:bg-purple-50"
+          >
+            {seeding ? (
+              <>
+                <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-2" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Database size={16} className="mr-2" /> Generate Mock Data
+              </>
+            )}
+          </Button>
           <Button variant="outline" size="sm">
             <Upload size={16} className="mr-2" /> Import
           </Button>

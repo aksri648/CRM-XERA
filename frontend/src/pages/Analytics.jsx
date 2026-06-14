@@ -14,18 +14,18 @@ export default function Analytics() {
   const [funnel, setFunnel] = useState(null);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/api/analytics/overview'),
-      api.get('/api/analytics/channels'),
-      api.get('/api/analytics/campaigns/top?limit=10'),
-      api.get('/api/analytics/funnel'),
-    ]).then(([o, c, t, f]) => {
-      setOverview(o.data);
-      setChannels(c.data);
-      setTopCampaigns(t.data);
-      setFunnel(f.data);
-    }).catch(() => {});
+    api.get('/api/analytics/overview').then(r => setOverview(r.data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'channels' && channels.length === 0) {
+      api.get('/api/analytics/channels').then(r => setChannels(r.data)).catch(() => {});
+    } else if (activeTab === 'top-campaigns' && topCampaigns.length === 0) {
+      api.get('/api/analytics/campaigns/top?limit=10').then(r => setTopCampaigns(r.data)).catch(() => {});
+    } else if (activeTab === 'campaign-funnel' && !funnel) {
+      api.get('/api/analytics/funnel').then(r => setFunnel(r.data)).catch(() => {});
+    }
+  }, [activeTab]);
 
   const kpis = overview ? [
     { label: 'Total Messages', value: formatNumber(overview.messages_sent || 0) },

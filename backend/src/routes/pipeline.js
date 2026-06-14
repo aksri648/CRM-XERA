@@ -1,13 +1,17 @@
 import { Router } from 'express';
 import Campaign from '../models/Campaign.js';
 import PipelineEvent from '../models/PipelineEvent.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireAuth);
 
 router.get('/status', async (req, res, next) => {
   try {
-    const active_campaigns = await Campaign.countDocuments({ status: 'running' });
+    const userId = req.userId;
+    const active_campaigns = await Campaign.countDocuments({ userId, status: 'running' });
     const stats = await Campaign.aggregate([
+      { $match: { userId } },
       { $group: {
         _id: null,
         total_sent: { $sum: '$stats.sent' },
@@ -27,8 +31,6 @@ router.get('/status', async (req, res, next) => {
 
     res.json({
       active_campaigns,
-      queue_pending: 0,
-      workers_processing: 0,
       total_sent: s.total_sent || 0,
       total_delivered: s.total_delivered || 0,
       total_opened: s.total_opened || 0,
@@ -42,7 +44,7 @@ router.get('/status', async (req, res, next) => {
 router.get('/events', async (req, res, next) => {
   try {
     const { limit = 50 } = req.query;
-    const events = await PipelineEvent.find().sort({ createdAt: -1 }).limit(Number(limit));
+    const events = await PipelineEvent.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(Number(limit)).lean();
     res.json(events);
   } catch (err) { next(err); }
 });

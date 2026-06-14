@@ -55,6 +55,7 @@ router.post('/callback', async (req, res) => {
     }
 
     await PipelineEvent.create({
+      userId: comm.userId,
       type: 'callback_received',
       title: 'Callback Received',
       description: `${event} for comm ${communication_id}`,

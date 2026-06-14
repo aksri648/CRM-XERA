@@ -2,14 +2,18 @@ import { Router } from 'express';
 import Customer from '../models/Customer.js';
 import Campaign from '../models/Campaign.js';
 import Communication from '../models/Communication.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireAuth);
 
 router.get('/overview', async (req, res, next) => {
   try {
-    const total_customers = await Customer.countDocuments();
-    const active_campaigns = await Campaign.countDocuments({ status: 'running' });
+    const userId = req.userId;
+    const total_customers = await Customer.countDocuments({ userId });
+    const active_campaigns = await Campaign.countDocuments({ userId, status: 'running' });
     const sentResult = await Campaign.aggregate([
+      { $match: { userId } },
       { $group: { _id: null, total: { $sum: '$stats.sent' }, revenue: { $sum: '$stats.revenue' } } },
     ]);
     const messages_sent = sentResult[0]?.total || 0;
@@ -32,6 +36,7 @@ router.get('/overview', async (req, res, next) => {
 router.get('/channels', async (req, res, next) => {
   try {
     const data = await Communication.aggregate([
+      { $match: { userId: req.userId } },
       { $group: {
         _id: '$channel',
         sent: { $sum: 1 },
@@ -56,10 +61,11 @@ router.get('/channels', async (req, res, next) => {
 router.get('/campaigns/top', async (req, res, next) => {
   try {
     const { limit = 10 } = req.query;
-    const campaigns = await Campaign.find({ status: 'completed' })
+    const campaigns = await Campaign.find({ userId: req.userId, status: 'completed' })
       .sort({ 'stats.revenue': -1 })
       .limit(Number(limit))
-      .populate('segmentId', 'name');
+      .populate('segmentId', 'name')
+      .lean();
     const data = campaigns.map(c => ({
       campaign_name: c.name,
       channel: c.channel,
@@ -75,6 +81,7 @@ router.get('/campaigns/top', async (req, res, next) => {
 router.get('/funnel', async (req, res, next) => {
   try {
     const result = await Campaign.aggregate([
+      { $match: { userId: req.userId } },
       { $group: {
         _id: null,
         sent: { $sum: '$stats.sent' },

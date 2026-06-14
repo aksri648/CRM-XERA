@@ -5,20 +5,28 @@ import Segment from '../models/Segment.js';
 import Customer from '../models/Customer.js';
 import Opportunity from '../models/Opportunity.js';
 import AgentProposal from '../models/AgentProposal.js';
-import ABTest from '../models/ABTest.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+router.use(requireAuth);
 
 router.post('/chat', async (req, res, next) => {
   try {
     const { session_id, message } = req.body;
-    const recentCampaigns = await Campaign.find().sort({ createdAt: -1 }).limit(5).lean();
-    const segments = await Segment.find().limit(10).lean();
+    const userId = req.userId;
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace('Bearer ', '');
+    const [recentCampaigns, segments, total_campaigns, total_segments] = await Promise.all([
+      Campaign.find({ userId }).sort({ createdAt: -1 }).limit(5).select('name channel status stats createdAt').lean(),
+      Segment.find({ userId }).limit(10).select('name description customerCount').lean(),
+      Campaign.countDocuments({ userId }),
+      Segment.countDocuments({ userId }),
+    ]);
     const context = {
       recent_campaigns: recentCampaigns,
       segments,
-      total_campaigns: await Campaign.countDocuments(),
-      total_segments: await Segment.countDocuments(),
+      total_campaigns,
+      total_segments,
     };
 
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
@@ -56,11 +64,13 @@ router.post('/chat', async (req, res, next) => {
 router.post('/command', async (req, res, next) => {
   try {
     const { session_id, message } = req.body;
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace('Bearer ', '');
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
     const agentResponse = await fetch(`${agentServiceUrl}/crew/command`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id, message, context: {} }),
+      body: JSON.stringify({ session_id, message, context: {}, token }),
     });
 
     if (!agentResponse.ok) {
@@ -115,13 +125,9 @@ const TOOL_DISPATCH = {
   reject_proposal:  (p) => ({ method: 'PATCH', path: `/api/proposals/${p.id}/reject` }),
   update_proposal:  (p) => ({ method: 'PATCH', path: `/api/proposals/${p.id}`, body: p.patch || {} }),
 
-  create_ab_test:      (p) => ({ method: 'POST',  path: '/api/ab-tests', body: p }),
-  set_ab_test_winner:  (p) => ({ method: 'PATCH', path: `/api/ab-tests/${p.id}/winner`, body: { winner: p.winner } }),
-
   update_settings: (p) => ({ method: 'PUT', path: '/api/settings', body: p }),
 };
 
-// For each tool, which fields hold an entity reference and which model to resolve against
 const ID_FIELD_RESOLVERS = {
   create_campaign:   [{ field: 'segmentId', Model: Segment }],
   update_campaign:   [{ field: 'id', Model: Campaign }],
@@ -135,8 +141,6 @@ const ID_FIELD_RESOLVERS = {
   approve_proposal:  [{ field: 'id', Model: AgentProposal }],
   reject_proposal:   [{ field: 'id', Model: AgentProposal }],
   update_proposal:   [{ field: 'id', Model: AgentProposal }],
-  create_ab_test:    [{ field: 'segmentId', Model: Segment }],
-  set_ab_test_winner:[{ field: 'id', Model: ABTest }],
 };
 
 const NAME_FIELDS = new Map([
@@ -145,32 +149,33 @@ const NAME_FIELDS = new Map([
   [Customer, 'name'],
   [Opportunity, 'title'],
   [AgentProposal, 'title'],
-  [ABTest, 'name'],
 ]);
 
 const isObjectId = (v) => typeof v === 'string' && /^[0-9a-fA-F]{24}$/.test(v) && mongoose.Types.ObjectId.isValid(v);
 
 const escapeRegex = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 
-async function resolveByName(Model, value) {
+async function resolveByName(Model, value, userId) {
   if (!value || typeof value !== 'string') return null;
   const nameField = NAME_FIELDS.get(Model) || 'name';
   const pattern = escapeRegex(value).trim();
   if (!pattern) return null;
-  // Exact (case-insensitive)
-  let doc = await Model.findOne({ [nameField]: { $regex: `^${pattern}$`, $options: 'i' } }).select('_id').lean();
+  const match = { userId };
+  match[nameField] = { $regex: `^${pattern}$`, $options: 'i' };
+  let doc = await Model.findOne(match).select('_id').lean();
   if (doc) return String(doc._id);
-  // Substring fallback (handles "VIP" -> "VIP Customers")
-  doc = await Model.findOne({ [nameField]: { $regex: pattern, $options: 'i' } }).select('_id').lean();
+  const matchSub = { userId };
+  matchSub[nameField] = { $regex: pattern, $options: 'i' };
+  doc = await Model.findOne(matchSub).select('_id').lean();
   return doc ? String(doc._id) : null;
 }
 
-async function resolveEntityIds(tool, params) {
+async function resolveEntityIds(tool, params, userId) {
   const resolvers = ID_FIELD_RESOLVERS[tool] || [];
   for (const { field, Model } of resolvers) {
     const value = params[field];
     if (!value || isObjectId(value)) continue;
-    const resolved = await resolveByName(Model, value);
+    const resolved = await resolveByName(Model, value, userId);
     if (!resolved) {
       const nameField = NAME_FIELDS.get(Model) || 'name';
       throw new Error(`No ${Model.modelName} found matching "${value}" by ${nameField}. Use the list tool to get a real ID.`);
@@ -186,14 +191,15 @@ router.post('/execute', async (req, res) => {
   }
   const resolved = { ...(params || {}) };
   try {
-    await resolveEntityIds(tool, resolved);
+    await resolveEntityIds(tool, resolved, req.userId);
   } catch (err) {
     return res.status(200).json({ ok: false, error: err.message });
   }
   try {
     const { method, path, body } = TOOL_DISPATCH[tool](resolved);
     const baseUrl = `http://localhost:${process.env.PORT || 8000}`;
-    const init = { method, headers: { 'Content-Type': 'application/json' } };
+    const authHeader = req.headers.authorization || '';
+    const init = { method, headers: { 'Content-Type': 'application/json', 'Authorization': authHeader } };
     if (body !== undefined) init.body = JSON.stringify(body);
     const upstream = await fetch(`${baseUrl}${path}`, init);
     const text = await upstream.text();
@@ -210,8 +216,8 @@ router.post('/execute', async (req, res) => {
 
 router.get('/system-status', async (req, res, next) => {
   try {
-    const active_campaigns = await Campaign.countDocuments({ status: 'running' });
-    res.json({ active_campaigns, queue_depth: 0, worker_health: 'healthy' });
+    const active_campaigns = await Campaign.countDocuments({ userId: req.userId, status: 'running' });
+    res.json({ active_campaigns });
   } catch (err) { next(err); }
 });
 
