@@ -130,7 +130,7 @@ export default function Docs() {
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            <a href="https://github.com/Ansh-699/xeno-crm" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-white">
+            <a href="https://github.com/aksri648/CRM-XERA" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-white">
               GitHub <ExternalLink className="h-3 w-3" />
             </a>
             <Link to="/dashboard"><GlassButton variant="primary" size="sm">Open CRM</GlassButton></Link>

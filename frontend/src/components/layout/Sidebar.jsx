@@ -130,7 +130,7 @@ export default function Sidebar({ onOpenCommandCentre }) {
 
       <div className="border-t border-white/10 p-4 flex items-center gap-3">
         <UserButton
-          afterSignOutUrl="/sign-in"
+          afterSignOutUrl="/"
           appearance={{
             elements: {
               avatarBox: 'w-8 h-8',

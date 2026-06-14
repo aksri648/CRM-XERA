@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { ClerkProvider, useAuth } from '@clerk/react';
 import { setClerkTokenGetter } from './lib/api';
 import App from './App';
@@ -16,14 +16,23 @@ function TokenInitializer({ children }) {
   return children;
 }
 
+function ClerkProviderWithRouter({ children }) {
+  const navigate = useNavigate();
+  return (
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY} navigate={(to) => navigate(to)}>
+      {children}
+    </ClerkProvider>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ClerkProviderWithRouter>
         <TokenInitializer>
           <App />
         </TokenInitializer>
-      </BrowserRouter>
-    </ClerkProvider>
+      </ClerkProviderWithRouter>
+    </BrowserRouter>
   </React.StrictMode>
 );
