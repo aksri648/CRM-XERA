@@ -9,7 +9,7 @@ const navGroups = [
   {
     label: 'MAIN',
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+      { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { label: 'AI Campaign Studio', icon: Sparkles, path: '/ai-studio', badge: 'New', badgeTeal: true },
       { label: 'Opportunities', icon: Lightbulb, path: '/opportunities', badgeKey: 'opportunities' },
       { label: 'Agent Proposals', icon: Bot, path: '/proposals', badgeKey: 'proposals' },
@@ -104,7 +104,7 @@ export default function Sidebar({ onOpenCommandCentre }) {
                 <NavLink
                   key={item.label}
                   to={item.path}
-                  end={item.path === '/'}
+                  end={item.path === '/dashboard'}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
                       isActive
