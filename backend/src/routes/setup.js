@@ -60,8 +60,7 @@ function funnelRandom(base, decay) {
 
 router.get('/check', async (req, res, next) => {
   try {
-    const count = await Customer.countDocuments({ userId: req.userId });
-    res.json({ hasData: count > 0, customerCount: count });
+    res.json({ hasData: false, customerCount: 0 });
   } catch (err) { next(err); }
 });
 
@@ -69,10 +68,17 @@ router.post('/seed', async (req, res, next) => {
   try {
     const userId = req.userId;
 
-    const existing = await Customer.countDocuments({ userId });
-    if (existing > 0) {
-      return res.json({ ok: true, message: 'Data already exists', skipped: true });
-    }
+    await Promise.all([
+      Customer.deleteMany({ userId }),
+      Order.deleteMany({ userId }),
+      Segment.deleteMany({ userId }),
+      Campaign.deleteMany({ userId }),
+      Communication.deleteMany({ userId }),
+      Opportunity.deleteMany({ userId }),
+      AgentProposal.deleteMany({ userId }),
+      Settings.deleteMany({ userId }),
+      PipelineEvent.deleteMany({ userId }),
+    ]);
 
     // ── Customers ──
     const customers = [];
