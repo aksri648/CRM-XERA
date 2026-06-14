@@ -86,7 +86,7 @@ export default function Dashboard() {
               </>
             )}
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => navigate('/customers')}>
             <Upload size={16} className="mr-2" /> Import
           </Button>
           <Button size="sm" className="bg-[#0fd4b4] hover:bg-[#0bbfa1] text-white" onClick={() => navigate('/ai-studio')}>
