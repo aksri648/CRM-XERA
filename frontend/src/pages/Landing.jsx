@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -43,63 +43,6 @@ const STEPS = [
   { label: 'Attribute', desc: 'Revenue & engagement traced back to each campaign.' },
 ];
 
-function CanvasBackground() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let animId;
-    let particles = [];
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    resize();
-    window.addEventListener('resize', resize);
-    class Particle {
-      constructor() { this.reset(); }
-      reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 1.5 + 0.5;
-        this.speedX = (Math.random() - 0.5) * 0.3;
-        this.speedY = (Math.random() - 0.5) * 0.3;
-        this.opacity = Math.random() * 0.4 + 0.1;
-      }
-      update() {
-        this.x += this.speedX; this.y += this.speedY;
-        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
-      }
-      draw() {
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(15, 212, 180, ${this.opacity})`; ctx.fill();
-      }
-    }
-    for (let i = 0; i < 80; i++) particles.push(new Particle());
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => { p.update(); p.draw(); });
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(15, 212, 180, ${0.06 * (1 - dist / 120)})`;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
-      }
-      animId = requestAnimationFrame(animate);
-    }
-    animate();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
-  }, []);
-  return <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 h-full w-full" />;
-}
-
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } };
 const stagger = { visible: { transition: { staggerChildren: 0.1 } } };
 
@@ -115,8 +58,6 @@ export default function Landing() {
 
   return (
     <div className="relative w-full bg-[#09090b] text-white">
-      <CanvasBackground />
-
       {/* Header */}
       <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled ? 'border-b border-white/[0.06] bg-[#09090b]/80 backdrop-blur-xl' : 'bg-transparent'}`}>
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
@@ -157,6 +98,19 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="relative flex h-screen w-full items-center justify-center overflow-hidden px-6">
+        {/* Video Background */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        >
+          <source src="/Neon_line_morphing_SaaS_shapes_202606142120.mp4" type="video/mp4" />
+        </video>
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-[#09090b]/60" />
+
         <motion.div className="relative z-10 mx-auto max-w-3xl text-center" initial="hidden" animate="visible" variants={stagger}>
           <motion.div variants={fadeUp} className="mb-6">
             <GlassBadge variant="primary">
