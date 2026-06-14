@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 
-import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog } from 'lucide-react';
+import { LayoutDashboard, Sparkles, Lightbulb, Bot, Users, FolderKanban, Megaphone, BarChart3, Activity, Cog, LogOut } from 'lucide-react';
 import api from '../../lib/api';
 
 const navGroups = [
@@ -44,6 +44,7 @@ const navGroups = [
 ];
 
 export default function Sidebar({ onOpenCommandCentre }) {
+  const navigate = useNavigate();
   const [badges, setBadges] = useState({ opportunities: 0, proposals: 0 });
 
   useEffect(() => {
@@ -131,6 +132,13 @@ export default function Sidebar({ onOpenCommandCentre }) {
         <div className="flex-1 min-w-0">
           <p className="text-sm text-slate-300 break-all leading-snug">User</p>
         </div>
+        <button
+          onClick={() => navigate('/')}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          title="Exit to landing page"
+        >
+          <LogOut size={16} />
+        </button>
       </div>
     </aside>
   );
