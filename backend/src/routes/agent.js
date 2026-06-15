@@ -63,14 +63,20 @@ router.post('/command', async (req, res, next) => {
   try {
     const { session_id, message } = req.body;
     const agentServiceUrl = process.env.AGENT_SERVICE_URL || 'http://localhost:8001';
+    const context = { userId: req.userId };
     const agentResponse = await fetch(`${agentServiceUrl}/crew/command`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id, message, context: {} }),
+      body: JSON.stringify({ session_id, message, context }),
     });
 
     if (!agentResponse.ok) {
-      return res.status(502).json({ error: 'Agent service error' });
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.write(`data: ${JSON.stringify({ type: 'error', message: 'Agent service unreachable' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      return res.end();
     }
 
     res.setHeader('Content-Type', 'text/event-stream');

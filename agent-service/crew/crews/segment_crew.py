@@ -23,57 +23,66 @@ class SegmentCrew:
 
         prompt_section = ""
         if user_prompt:
-            prompt_section = f"""
-
-ADDITIONAL USER INSTRUCTIONS:
-The user has provided the following instructions for segment creation. Follow these carefully while also using the customer data distributions:
-
-"{user_prompt}"
-
-Create segments that align with what the user described above. You may create fewer or more segments as appropriate based on their request."""
+            prompt_section = (
+                "\n\nADDITIONAL USER INSTRUCTIONS:\n"
+                "The user has provided specific guidance for segment creation. "
+                "Follow it carefully alongside the distribution data below. You may "
+                "create fewer or more segments than the default range if the user's "
+                "request demands it.\n\n"
+                f"\"{user_prompt}\""
+            )
 
         task = Task(
             description=f"""You are the AI Segmentation Engine for Xeno CRM.
 
-Your job:
-1. Use fetch_customer_distributions to get a comprehensive view of the customer base
-2. Analyze the distributions to identify meaningful audience segments
-3. Create precise segment definitions with MongoDB filter rules
-4. Use save_segments to store them in the database
+WORKFLOW (follow in order):
+1. Call fetch_customer_distributions to load a current view of the customer base.
+   Never invent distribution data.
+2. Analyze the distributions to identify meaningful, high-value audience segments.
+3. Design precise segment definitions with executable MongoDB filter rules.
+4. Call save_segments with the JSON array to persist them.
 
-Segment types to consider:
-- VIP / High-Value: LTV in top percentile (e.g., >₹10,000 or >₹5,000)
-- At-Risk: High LTV but haven't purchased in 45+ days
-- New Customers: Acquired in last 30 days
-- Loyal Customers: 3+ orders, high recency
-- Win-Back Candidates: Previously active, now lapsing (30-60 days)
-- High-Potential: New but with high first purchase value
-- Category Buyers: Based on purchase categories (fashion, electronics, etc.)
-{prompt_section}
-Each segment MUST have:
-- name: short descriptive name (e.g., "VIP Customers", "At-Risk High-Value")
-- description: 1-2 sentence explanation of who this segment is
+SEGMENT TYPES TO CONSIDER (pick the ones the data actually supports):
+- VIP / High-Value — LTV in top percentile (anchor to the actual distribution)
+- At-Risk — High LTV but no purchase in 45+ days
+- New Customers — Acquired in the last 30 days
+- Loyal — 3+ orders with recent activity
+- Win-Back — Previously active, now lapsing (30–60 days)
+- High-Potential — New, but with high first-purchase value
+- Category Buyers — Based on purchase category
+
+SEGMENT SCHEMA (every segment MUST have):
+- name: short descriptive name (e.g. "VIP Customers", "At-Risk High-Value")
+- description: 1–2 sentences describing who this segment is and why it matters
 - filterRules: array of {{field, operator, value}}
   - field options: ltv, totalOrders, last_order_days, city, gender, age, tags, category
-  - operator options for numeric: gt, gte, lt, lte, eq
-  - operator options for text: contains (regex match)
-  - For last_order_days: use value as number of days
-- logic: "AND" to combine rules (almost always use AND)
+  - numeric operators: gt, gte, lt, lte, eq
+  - text operator: contains (regex match)
+  - last_order_days uses a numeric day count
+- logic: "AND" (default) or "OR" (only when the rules are genuinely disjunctive)
 
-IMPORTANT: Output a JSON array of segments to be saved. Use the save_segments tool to save them.
+DEFAULT TARGET: produce 5–8 segments unless the user instructions say otherwise.
+{prompt_section}
 
-Example segment:
+EXAMPLE SEGMENT:
 [
   {{
     "name": "VIP Customers",
-    "description": "Top-spending customers with LTV above ₹10,000 who demonstrate strong purchase history",
+    "description": "Top-spending customers with LTV above ₹10,000 and strong purchase history.",
     "filterRules": [{{"field": "ltv", "operator": "gte", "value": 10000}}],
     "logic": "AND"
   }}
 ]
 
-Return ONLY the JSON array - no explanation, no markdown, just the raw JSON for save_segments.""",
-            expected_output='A JSON array of segment definitions to save to the database.',
+RULES:
+- Anchor every threshold in the actual distribution buckets you fetched.
+- Never invent fields outside the list above.
+- Default logic is "AND".
+
+OUTPUT DISCIPLINE:
+After save_segments succeeds, return ONLY the raw JSON array of segments —
+no markdown, no code fences, no commentary.""",
+            expected_output='A JSON array of segment definitions persisted via save_segments.',
             agent=self.agent,
         )
 
@@ -82,7 +91,7 @@ Return ONLY the JSON array - no explanation, no markdown, just the raw JSON for 
             tasks=[task],
             process=Process.sequential,
             function_calling_llm=self.llm,
-            verbose=True,
+            verbose=False,
         )
 
         result = crew.kickoff()

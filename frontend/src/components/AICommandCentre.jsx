@@ -1,151 +1,558 @@
 import { useState, useEffect, useRef } from 'react';
 
-import { Bot, X, Send, Megaphone, CheckCircle, AlertCircle, Wrench, AlertTriangle, Check, XCircle } from 'lucide-react';
+import {
+  Bot, X, Send, CheckCircle, Wrench, AlertTriangle, Check, XCircle, ChevronDown, ChevronRight,
+  TrendingUp, BarChart3, Mail, MessageCircle, Smartphone, Radio, Users, Target, Lightbulb,
+  ShoppingCart, Activity, Settings as SettingsIcon, FileText,
+} from 'lucide-react';
 import { useSSE } from '../hooks/useSSE';
 import api from '../lib/api';
 import { formatNumber, formatCurrency } from '../lib/utils';
 
-function CustomersTableCard({ customers }) {
-  if (!customers?.length) return null;
+// ---------- helpers ----------
+const stripFences = (s = '') => String(s).replace(/^```[a-zA-Z]*\s*/, '').replace(/\s*```$/, '').trim();
+const pct = (v) => `${(Number(v || 0) * 100).toFixed(1)}%`;
+const arr = (v) => (Array.isArray(v) ? v : []);
+
+const channelIcon = (c) => {
+  const k = String(c || '').toLowerCase();
+  if (k === 'whatsapp') return <MessageCircle size={12} />;
+  if (k === 'email') return <Mail size={12} />;
+  if (k === 'sms') return <Smartphone size={12} />;
+  if (k === 'rcs') return <Radio size={12} />;
+  return <Radio size={12} />;
+};
+
+const channelColors = {
+  whatsapp: 'bg-green-100 text-green-700',
+  email: 'bg-blue-100 text-blue-700',
+  sms: 'bg-yellow-100 text-yellow-700',
+  rcs: 'bg-purple-100 text-purple-700',
+};
+
+const statusColors = {
+  draft: 'bg-gray-100 text-gray-600',
+  running: 'bg-blue-100 text-blue-600',
+  stopped: 'bg-orange-100 text-orange-600',
+  completed: 'bg-green-100 text-green-700',
+  pending: 'bg-amber-100 text-amber-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-gray-100 text-gray-500',
+};
+
+// ---------- card primitives ----------
+function CardShell({ icon: Icon, title, subtitle, children }) {
   return (
-    <div className="space-y-1 mt-2">
-      {customers.map(c => (
-        <div key={c._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-          <div>
-            <p className="text-sm font-medium text-gray-900">{c.name}</p>
-            <p className="text-xs text-gray-500">{c.email}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-bold text-gray-900">{formatCurrency(c.ltv)}</p>
-            <p className="text-xs text-gray-500">{formatNumber(c.totalOrders || 0)} orders</p>
+    <div className="mt-2 bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {(title || Icon) && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50">
+          {Icon && <Icon size={14} className="text-[#0fd4b4]" />}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-gray-700 truncate">{title}</p>
+            {subtitle && <p className="text-[10px] text-gray-500 truncate">{subtitle}</p>}
           </div>
         </div>
-      ))}
+      )}
+      <div className="p-2">{children}</div>
     </div>
   );
 }
 
-function CampaignsTableCard({ campaigns }) {
-  if (!campaigns?.length) return null;
-  const statusColors = { draft: 'bg-gray-100 text-gray-600', running: 'bg-blue-100 text-blue-600', stopped: 'bg-orange-100 text-orange-600', completed: 'bg-green-100 text-green-700' };
-  const channelColors = { whatsapp: 'bg-green-100 text-green-700', email: 'bg-blue-100 text-blue-700', sms: 'bg-yellow-100 text-yellow-700', rcs: 'bg-purple-100 text-purple-700' };
+function MetricTile({ label, value, sub, accent }) {
   return (
-    <div className="space-y-1 mt-2">
-      {campaigns.map(c => (
-        <div key={c._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-          <div>
-            <p className="text-sm font-medium text-gray-900">{c.name}</p>
-            <div className="flex gap-1 mt-0.5">
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border-0 ${channelColors[c.channel] || 'bg-gray-100 text-gray-600'}`}>{c.channel}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border-0 ${statusColors[c.status] || 'bg-gray-100 text-gray-600'}`}>{c.status}</span>
+    <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+      <p className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</p>
+      <p className={`text-sm font-bold ${accent || 'text-gray-900'} break-all`}>{value}</p>
+      {sub && <p className="text-[10px] text-gray-500 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function MetricGrid({ items, cols = 2 }) {
+  const colsClass = cols === 3 ? 'grid-cols-3' : cols === 4 ? 'grid-cols-4' : 'grid-cols-2';
+  return (
+    <div className={`grid ${colsClass} gap-2`}>
+      {items.map((it, i) => <MetricTile key={i} {...it} />)}
+    </div>
+  );
+}
+
+function ProgressRow({ label, value, max, suffix, color = 'bg-[#0fd4b4]' }) {
+  const ratio = max ? Math.min(100, (Number(value || 0) / Number(max)) * 100) : 0;
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[11px] text-gray-600 mb-0.5">
+        <span className="font-medium">{label}</span>
+        <span className="tabular-nums">{formatNumber(value || 0)}{suffix || ''}</span>
+      </div>
+      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full ${color}`} style={{ width: `${ratio}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// ---------- tool-specific cards ----------
+function CustomersCard({ data }) {
+  const customers = arr(data?.customers || (Array.isArray(data) ? data : []));
+  if (!customers.length) return <EmptyHint label="No customers found." />;
+  return (
+    <CardShell icon={Users} title={`${customers.length} customers`} subtitle={data?.total ? `${formatNumber(data.total)} total` : null}>
+      <div className="space-y-1">
+        {customers.map((c) => (
+          <div key={c._id} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
+              <p className="text-[11px] text-gray-500 truncate">{c.email}</p>
+            </div>
+            <div className="text-right pl-2">
+              <p className="text-sm font-bold text-gray-900">{formatCurrency(c.ltv || 0)}</p>
+              <p className="text-[11px] text-gray-500">{formatNumber(c.totalOrders || 0)} orders</p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-500">Sent: {formatNumber(c.stats?.sent || 0)}</p>
-            <p className="text-xs text-gray-500">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}</p>
+        ))}
+      </div>
+    </CardShell>
+  );
+}
+
+function CampaignsCard({ data }) {
+  const campaigns = arr(data?.campaigns || (Array.isArray(data) ? data : []));
+  if (!campaigns.length) return <EmptyHint label="No campaigns found." />;
+  return (
+    <CardShell icon={Target} title={`${campaigns.length} campaigns`} subtitle={data?.total ? `${formatNumber(data.total)} total` : null}>
+      <div className="space-y-1">
+        {campaigns.map((c) => (
+          <div key={c._id} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
+              <div className="flex gap-1 mt-0.5">
+                <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${channelColors[c.channel] || 'bg-gray-100 text-gray-600'}`}>
+                  {channelIcon(c.channel)} {c.channel}
+                </span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusColors[c.status] || 'bg-gray-100 text-gray-600'}`}>{c.status}</span>
+              </div>
+            </div>
+            <div className="text-right pl-2">
+              <p className="text-[11px] text-gray-500">Sent: <span className="text-gray-900 font-medium">{formatNumber(c.stats?.sent || 0)}</span></p>
+              <p className="text-[11px] text-gray-500">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}</p>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </CardShell>
   );
 }
 
-function SegmentsTableCard({ segments }) {
-  if (!segments?.length) return null;
+function SegmentsCard({ data }) {
+  const segments = arr(data?.segments || (Array.isArray(data) ? data : []));
+  if (!segments.length) return <EmptyHint label="No segments found." />;
   return (
-    <div className="space-y-1 mt-2">
-      {segments.map(s => (
-        <div key={s._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-          <div>
-            <p className="text-sm font-medium text-gray-900">{s.name}</p>
-            <p className="text-xs text-gray-500">{s.filterRules?.length || 0} filter rules · {s.logic} · {formatNumber(s.customerCount || 0)} customers</p>
+    <CardShell icon={Users} title={`${segments.length} segments`}>
+      <div className="space-y-1">
+        {segments.map((s) => (
+          <div key={s._id} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{s.name}</p>
+              <p className="text-[11px] text-gray-500 truncate">
+                {arr(s.filterRules).length} rules · {s.logic || 'AND'} · {formatNumber(s.customerCount || 0)} customers
+              </p>
+            </div>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${s.createdBy === 'agent' ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'}`}>
+              {s.createdBy || 'user'}
+            </span>
           </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full border-0 ${s.createdBy === 'agent' ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600'}`}>
-            {s.createdBy}
-          </span>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </CardShell>
   );
 }
 
-function OpportunitiesTableCard({ opportunities }) {
-  if (!opportunities?.length) return null;
+function OpportunitiesCard({ data }) {
+  const opps = arr(data?.opportunities || (Array.isArray(data) ? data : []));
+  if (!opps.length) return <EmptyHint label="No opportunities." />;
   return (
-    <div className="space-y-1 mt-2">
-      {opportunities.map(o => (
-        <div key={o._id} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-          <p className="text-sm font-medium text-gray-900">{o.title}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{o.audienceDescription}</p>
-          <p className="text-xs text-gray-500">Expected revenue: {formatCurrency(o.expectedRevenue || 0)}</p>
-        </div>
-      ))}
-    </div>
+    <CardShell icon={Lightbulb} title={`${opps.length} opportunities`}>
+      <div className="space-y-1.5">
+        {opps.map((o) => (
+          <div key={o._id || o.title} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium text-gray-900">{o.title}</p>
+              <span className="text-[11px] font-semibold text-emerald-700">{formatCurrency(o.expectedRevenue || o.expected_revenue_inr || 0)}</span>
+            </div>
+            <p className="text-[11px] text-gray-600 mt-0.5">{o.audienceDescription || o.audience_description}</p>
+            {(o.recommendedChannel || o.recommended_channel) && (
+              <span className={`inline-flex items-center gap-1 text-[10px] mt-1 px-1.5 py-0.5 rounded-full ${channelColors[o.recommendedChannel || o.recommended_channel] || 'bg-gray-100 text-gray-600'}`}>
+                {channelIcon(o.recommendedChannel || o.recommended_channel)} {o.recommendedChannel || o.recommended_channel}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </CardShell>
   );
 }
 
-function KeyValueCard({ data }) {
-  if (!data || typeof data !== 'object') return null;
-  const entries = Object.entries(data).filter(([k]) => !['_id', '__v'].includes(k));
-  if (entries.length === 0) return null;
+function ProposalsCard({ data }) {
+  const proposals = arr(data?.proposals || (Array.isArray(data) ? data : []));
+  if (!proposals.length) return <EmptyHint label="No proposals." />;
   return (
-    <div className="grid grid-cols-2 gap-2 mt-2">
-      {entries.map(([k, v]) => (
-        <div key={k} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-          <p className="text-[10px] text-gray-500 uppercase">{k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}</p>
-          <p className="text-sm font-bold text-gray-900 break-all">
-            {typeof v === 'object' ? JSON.stringify(v) : String(v)}
-          </p>
-        </div>
-      ))}
-    </div>
+    <CardShell icon={FileText} title={`${proposals.length} proposals`}>
+      <div className="space-y-1">
+        {proposals.map((p) => (
+          <div key={p._id} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{p.title}</p>
+              <p className="text-[11px] text-gray-500 truncate">{p.channel} · {p.audience || p.segmentName || ''}</p>
+            </div>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusColors[p.status] || 'bg-gray-100 text-gray-600'}`}>{p.status}</span>
+          </div>
+        ))}
+      </div>
+    </CardShell>
   );
+}
+
+function OrdersCard({ data }) {
+  const orders = arr(data?.orders || (Array.isArray(data) ? data : []));
+  if (!orders.length) return <EmptyHint label="No orders." />;
+  return (
+    <CardShell icon={ShoppingCart} title={`${orders.length} orders`} subtitle={data?.total ? `${formatNumber(data.total)} total` : null}>
+      <div className="space-y-1">
+        {orders.slice(0, 20).map((o) => (
+          <div key={o._id} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{o.orderId || o._id}</p>
+              <p className="text-[11px] text-gray-500">{o.orderedAt ? new Date(o.orderedAt).toLocaleDateString() : ''}</p>
+            </div>
+            <p className="text-sm font-bold text-gray-900">{formatCurrency(o.amount || 0)}</p>
+          </div>
+        ))}
+      </div>
+    </CardShell>
+  );
+}
+
+function AnalyticsOverviewCard({ data }) {
+  if (!data) return null;
+  return (
+    <CardShell icon={TrendingUp} title="Analytics overview">
+      <MetricGrid
+        cols={2}
+        items={[
+          { label: 'Customers', value: formatNumber(data.total_customers || 0) },
+          { label: 'Active campaigns', value: formatNumber(data.active_campaigns || 0) },
+          { label: 'Messages sent', value: formatNumber(data.messages_sent || 0) },
+          { label: 'Revenue', value: formatCurrency(data.revenue_attributed || 0), accent: 'text-emerald-700' },
+          { label: 'Delivery rate', value: pct(data.delivery_rate) },
+          { label: 'Open rate', value: pct(data.open_rate) },
+          { label: 'Conversion rate', value: pct(data.conversion_rate) },
+        ]}
+      />
+    </CardShell>
+  );
+}
+
+function ChannelsCard({ data }) {
+  const channels = arr(data);
+  if (!channels.length) return <EmptyHint label="No channel data." />;
+  return (
+    <CardShell icon={BarChart3} title="Channel performance">
+      <div className="space-y-2">
+        {channels.map((c) => (
+          <div key={c.channel} className="bg-gray-50 rounded-lg p-2 border border-gray-100">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${channelColors[c.channel] || 'bg-gray-100 text-gray-700'}`}>
+                {channelIcon(c.channel)} {c.channel}
+              </span>
+              <span className="text-[11px] text-gray-500">Sent {formatNumber(c.sent || 0)}</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              <div><p className="text-[10px] text-gray-500">Delivery</p><p className="text-xs font-bold text-gray-900">{pct(c.delivery_rate)}</p></div>
+              <div><p className="text-[10px] text-gray-500">Open</p><p className="text-xs font-bold text-gray-900">{pct(c.open_rate)}</p></div>
+              <div><p className="text-[10px] text-gray-500">Click</p><p className="text-xs font-bold text-gray-900">{pct(c.click_rate)}</p></div>
+              <div><p className="text-[10px] text-gray-500">Conv</p><p className="text-xs font-bold text-emerald-700">{pct(c.conversion_rate)}</p></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CardShell>
+  );
+}
+
+function TopCampaignsCard({ data }) {
+  const items = arr(data);
+  if (!items.length) return <EmptyHint label="No completed campaigns yet." />;
+  return (
+    <CardShell icon={TrendingUp} title="Top campaigns by revenue">
+      <div className="space-y-1">
+        {items.map((c, i) => (
+          <div key={`${c.campaign_name}-${i}`} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{c.campaign_name}</p>
+              <p className="text-[11px] text-gray-500 truncate">
+                {c.channel}{c.segment_name ? ` · ${c.segment_name}` : ''} · Open {pct(c.open_rate)}
+              </p>
+            </div>
+            <p className="text-sm font-bold text-emerald-700 pl-2">{formatCurrency(c.revenue || 0)}</p>
+          </div>
+        ))}
+      </div>
+    </CardShell>
+  );
+}
+
+function FunnelCard({ data }) {
+  if (!data) return null;
+  const steps = [
+    { label: 'Sent', key: 'sent', color: 'bg-blue-500' },
+    { label: 'Delivered', key: 'delivered', color: 'bg-indigo-500' },
+    { label: 'Opened', key: 'opened', color: 'bg-violet-500' },
+    { label: 'Clicked', key: 'clicked', color: 'bg-fuchsia-500' },
+    { label: 'Converted', key: 'converted', color: 'bg-emerald-500' },
+  ];
+  const max = Math.max(...steps.map(s => Number(data[s.key] || 0)), 1);
+  return (
+    <CardShell icon={BarChart3} title="Marketing funnel">
+      <div className="space-y-2">
+        {steps.map(s => (
+          <ProgressRow key={s.key} label={s.label} value={data[s.key] || 0} max={max} color={s.color} />
+        ))}
+      </div>
+    </CardShell>
+  );
+}
+
+function PipelineStatusCard({ data }) {
+  if (!data) return null;
+  const health = data.channel_service_health || data.health;
+  return (
+    <CardShell icon={Activity} title="Pipeline status">
+      <MetricGrid
+        cols={2}
+        items={[
+          { label: 'Channel health', value: health || 'unknown', accent: health === 'ok' ? 'text-emerald-700' : 'text-rose-700' },
+          { label: 'Active campaigns', value: formatNumber(data.active_campaigns || 0) },
+          { label: 'Queued', value: formatNumber(data.queued || data.in_queue || 0) },
+          { label: 'Delivered (24h)', value: formatNumber(data.delivered_24h || data.delivered || 0) },
+        ]}
+      />
+    </CardShell>
+  );
+}
+
+function DistributionsCard({ data }) {
+  if (!data) return null;
+  const buckets = (key) => arr(data[key]);
+  return (
+    <CardShell icon={Users} title="Customer distributions" subtitle={data.totalCustomers ? `${formatNumber(data.totalCustomers)} total` : null}>
+      {buckets('ltvDistribution').length > 0 && (
+        <div className="mb-2">
+          <p className="text-[11px] font-semibold text-gray-600 mb-1">LTV</p>
+          {buckets('ltvDistribution').slice(0, 5).map((b, i) => (
+            <ProgressRow key={i} label={b.bucket || `Band ${i + 1}`} value={b.count || 0} max={Math.max(...buckets('ltvDistribution').map(x => x.count || 0), 1)} />
+          ))}
+        </div>
+      )}
+      {buckets('cityDistribution').length > 0 && (
+        <div className="mb-1">
+          <p className="text-[11px] font-semibold text-gray-600 mb-1">Top cities</p>
+          {buckets('cityDistribution').slice(0, 5).map((b, i) => (
+            <div key={i} className="flex justify-between text-[11px] py-0.5">
+              <span className="text-gray-700">{b._id || '—'}</span>
+              <span className="tabular-nums text-gray-900 font-medium">{formatNumber(b.count || 0)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardShell>
+  );
+}
+
+function SettingsCard({ data }) {
+  if (!data) return null;
+  const entries = [
+    ['Platform', data.platformName],
+    ['Timezone', data.timezone],
+    ['Currency', data.currency],
+    ['AI model', data.aiModel],
+    ['Scan schedule', data.scanSchedule],
+    ['Auto-approve', data.autoApprove ? 'On' : 'Off'],
+  ].filter(([, v]) => v !== undefined && v !== null && v !== '');
+  return (
+    <CardShell icon={SettingsIcon} title="Settings">
+      <div className="grid grid-cols-2 gap-2">
+        {entries.map(([k, v]) => <MetricTile key={k} label={k} value={String(v)} />)}
+      </div>
+    </CardShell>
+  );
+}
+
+function CampaignDetailCard({ data }) {
+  const c = data?.campaign || data;
+  if (!c?.name) return <RawJsonCard data={data} />;
+  return (
+    <CardShell icon={Target} title={c.name} subtitle={`${c.channel || ''} · ${c.status || ''}`}>
+      {c.messageTemplate && (
+        <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-100">
+          <p className="text-[10px] text-gray-500 uppercase mb-0.5">Message</p>
+          <p className="text-xs text-gray-800 whitespace-pre-wrap">{c.messageTemplate}</p>
+        </div>
+      )}
+      <MetricGrid
+        cols={3}
+        items={[
+          { label: 'Sent', value: formatNumber(c.stats?.sent || 0) },
+          { label: 'Delivered', value: formatNumber(c.stats?.delivered || 0) },
+          { label: 'Opened', value: formatNumber(c.stats?.opened || 0) },
+          { label: 'Clicked', value: formatNumber(c.stats?.clicked || 0) },
+          { label: 'Converted', value: formatNumber(c.stats?.converted || 0) },
+          { label: 'Revenue', value: formatCurrency(c.stats?.revenue || 0), accent: 'text-emerald-700' },
+        ]}
+      />
+    </CardShell>
+  );
+}
+
+function CustomerDetailCard({ data }) {
+  const c = data?.customer || data;
+  if (!c?.name) return <RawJsonCard data={data} />;
+  return (
+    <CardShell icon={Users} title={c.name} subtitle={c.email}>
+      <MetricGrid
+        cols={3}
+        items={[
+          { label: 'LTV', value: formatCurrency(c.ltv || 0), accent: 'text-emerald-700' },
+          { label: 'Orders', value: formatNumber(c.totalOrders || 0) },
+          { label: 'City', value: c.city || '—' },
+        ]}
+      />
+    </CardShell>
+  );
+}
+
+function SegmentDetailCard({ data }) {
+  const s = data?.segment || data;
+  if (!s?.name) return <RawJsonCard data={data} />;
+  return (
+    <CardShell icon={Users} title={s.name} subtitle={s.description}>
+      <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-100">
+        <p className="text-[10px] text-gray-500 uppercase mb-1">Rules ({s.logic || 'AND'})</p>
+        <div className="space-y-0.5">
+          {arr(s.filterRules).map((r, i) => (
+            <code key={i} className="block text-[11px] text-gray-800 font-mono">
+              {r.field} {r.operator} {typeof r.value === 'object' ? JSON.stringify(r.value) : String(r.value)}
+            </code>
+          ))}
+        </div>
+      </div>
+      <p className="text-[11px] text-gray-500">{formatNumber(s.customerCount || 0)} customers match</p>
+    </CardShell>
+  );
+}
+
+function EmptyHint({ label }) {
+  return <div className="mt-2 text-[11px] text-gray-500 italic px-2">{label}</div>;
 }
 
 function RawJsonCard({ data }) {
   return (
-    <pre className="bg-gray-50 border border-gray-100 rounded-lg p-2 mt-2 text-[11px] text-gray-700 overflow-x-auto max-h-48">
-      {JSON.stringify(data, null, 2)}
-    </pre>
+    <CardShell title="Raw result">
+      <pre className="text-[11px] text-gray-700 overflow-x-auto max-h-48 font-mono">{JSON.stringify(data, null, 2)}</pre>
+    </CardShell>
   );
 }
 
 function ToolResultCard({ tool, data }) {
-  const customers = data?.customers;
-  const campaigns = data?.campaigns;
-  const segments = data?.segments;
-  const opportunities = data?.opportunities;
-
-  if (tool === 'list_customers' || tool === 'get_segment_customers') {
-    return <CustomersTableCard customers={customers || (Array.isArray(data) ? data : [])} />;
+  if (data && typeof data === 'object' && data.error) {
+    return (
+      <div className="mt-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-[11px] text-rose-700">
+        <span className="font-semibold">{tool} failed:</span> {String(data.error)}
+      </div>
+    );
   }
-  if (tool === 'list_campaigns') {
-    return <CampaignsTableCard campaigns={campaigns || (Array.isArray(data) ? data : [])} />;
+  switch (tool) {
+    case 'list_customers':
+    case 'get_segment_customers':
+      return <CustomersCard data={data} />;
+    case 'list_campaigns':
+      return <CampaignsCard data={data} />;
+    case 'list_segments':
+      return <SegmentsCard data={data} />;
+    case 'list_opportunities':
+      return <OpportunitiesCard data={data} />;
+    case 'list_proposals':
+      return <ProposalsCard data={data} />;
+    case 'list_orders':
+      return <OrdersCard data={data} />;
+    case 'get_analytics_overview':
+      return <AnalyticsOverviewCard data={data} />;
+    case 'get_channels_analytics':
+      return <ChannelsCard data={data} />;
+    case 'get_top_campaigns':
+      return <TopCampaignsCard data={data} />;
+    case 'get_funnel':
+      return <FunnelCard data={data} />;
+    case 'get_pipeline_status':
+      return <PipelineStatusCard data={data} />;
+    case 'get_customer_distributions':
+      return <DistributionsCard data={data} />;
+    case 'get_settings':
+      return <SettingsCard data={data} />;
+    case 'get_campaign':
+    case 'get_campaign_stats':
+      return <CampaignDetailCard data={data} />;
+    case 'get_customer':
+      return <CustomerDetailCard data={data} />;
+    case 'get_segment':
+      return <SegmentDetailCard data={data} />;
+    case 'get_proposal':
+      return <CardShell icon={FileText} title="Proposal"><RawJsonCard data={data?.proposal || data} /></CardShell>;
+    case 'preview_segment':
+      return (
+        <CardShell icon={Users} title="Segment preview">
+          <MetricTile label="Matching customers" value={formatNumber(data?.count || data?.total || 0)} />
+        </CardShell>
+      );
+    default:
+      return <RawJsonCard data={data} />;
   }
-  if (tool === 'list_segments') {
-    return <SegmentsTableCard segments={segments || (Array.isArray(data) ? data : [])} />;
-  }
-  if (tool === 'list_opportunities') {
-    return <OpportunitiesTableCard opportunities={opportunities || (Array.isArray(data) ? data : [])} />;
-  }
-  if (tool === 'get_pipeline_status' || tool === 'get_analytics_overview' || tool === 'get_channels_analytics' || tool === 'get_funnel' || tool === 'get_settings' || tool === 'get_customer_distributions') {
-    return <KeyValueCard data={data} />;
-  }
-  if (tool === 'get_customer' || tool === 'get_campaign' || tool === 'get_campaign_stats' || tool === 'get_segment' || tool === 'get_proposal') {
-    return <KeyValueCard data={data?.campaign || data?.customer || data?.segment || data?.proposal || data?.stats || data} />;
-  }
-  return <RawJsonCard data={data} />;
 }
 
-function ToolCallBreadcrumb({ tool, params }) {
-  const paramStr = Object.entries(params || {})
-    .filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+function paramSummary(params) {
+  return Object.entries(params || {})
+    .filter(([, v]) => v !== '' && v !== null && v !== undefined)
     .map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`)
     .join(', ');
+}
+
+function ActivityTimeline({ calls, results }) {
+  const [open, setOpen] = useState(false);
+  const count = calls.length;
+  if (count === 0) return null;
+  const finishedCount = results.length;
   return (
-    <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mt-1">
-      <Wrench size={11} />
-      <code className="font-mono">{tool}({paramStr})</code>
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 text-[11px] text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-2 py-1.5"
+      >
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <Wrench size={11} />
+        <span className="font-medium">
+          {finishedCount === count ? `Used ${count} tool${count === 1 ? '' : 's'}` : `Working… (${finishedCount}/${count})`}
+        </span>
+      </button>
+      {open && (
+        <div className="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">
+          {calls.map((tc, i) => (
+            <div key={i} className="text-[11px] text-gray-600">
+              <code className="font-mono text-gray-800">{tc.tool}</code>
+              <span className="text-gray-400">({paramSummary(tc.params)})</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -190,6 +597,7 @@ function PendingActionCard({ action, onApprove, onReject }) {
   );
 }
 
+// ---------- main component ----------
 export default function AICommandCentre({ onClose }) {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [input, setInput] = useState('');
@@ -202,8 +610,9 @@ export default function AICommandCentre({ onClose }) {
     'System status',
     'Top customers by LTV',
     'Recent campaigns',
+    'Show analytics overview',
+    'Show channel performance',
     'Create a draft campaign for the VIP segment on WhatsApp',
-    'What were our top-performing campaigns?',
   ]);
 
   useEffect(() => {
@@ -238,7 +647,7 @@ export default function AICommandCentre({ onClose }) {
     const last = prev[prev.length - 1];
     if (last?.role === 'assistant') return { msgs: prev, idx: prev.length - 1 };
     return {
-      msgs: [...prev, { role: 'assistant', content: '', toolCalls: [], toolResults: [], pendingActions: [] }],
+      msgs: [...prev, { role: 'assistant', content: '', toolCalls: [], toolResults: [], pendingActions: [], error: null }],
       idx: prev.length,
     };
   };
@@ -255,7 +664,7 @@ export default function AICommandCentre({ onClose }) {
         setMessages(prev => {
           const { msgs, idx } = ensureAssistantMessage(prev);
           const updated = [...msgs];
-          updated[idx] = { ...updated[idx], content: `Error: ${ev.message}` };
+          updated[idx] = { ...updated[idx], error: ev.message || 'Something went wrong.' };
           return updated;
         });
         continue;
@@ -266,7 +675,8 @@ export default function AICommandCentre({ onClose }) {
           const { msgs, idx } = ensureAssistantMessage(prev);
           const updated = [...msgs];
           const cur = updated[idx];
-          updated[idx] = { ...cur, content: cur.content ? `${cur.content}\n${ev.content}` : ev.content };
+          const clean = stripFences(ev.content || '');
+          updated[idx] = { ...cur, content: cur.content ? `${cur.content}\n${clean}` : clean };
           return updated;
         });
         continue;
@@ -370,7 +780,7 @@ export default function AICommandCentre({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-2xl w-[720px] max-h-[88vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-[760px] max-h-[88vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#0fd4b4] flex items-center justify-center">
@@ -415,36 +825,58 @@ export default function AICommandCentre({ onClose }) {
               <p className="text-[10px] text-gray-400 mt-2 ml-2">Click a suggestion or type your own query</p>
             </div>
           )}
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[88%] ${msg.role === 'user' ? 'bg-[#0fd4b4] text-white rounded-2xl rounded-tr-none px-4 py-3' : 'bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3'}`}>
-                {msg.content && <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
-                {msg.toolCalls?.map((tc, j) => <ToolCallBreadcrumb key={`tc-${j}`} tool={tc.tool} params={tc.params} />)}
-                {msg.toolResults?.map((tr, j) => <ToolResultCard key={`tr-${j}`} tool={tr.tool} data={tr.data} />)}
-                {msg.pendingActions?.map((pa, j) => (
-                  <PendingActionCard
-                    key={`pa-${j}`}
-                    action={pa}
-                    onApprove={() => handleApprove(i, j)}
-                    onReject={() => handleReject(i, j)}
-                  />
-                ))}
-                {msg.role === 'assistant' && msg.suggestions?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {msg.suggestions.map((s, k) => (
-                      <button
-                        key={`sg-${k}`}
-                        onClick={() => handleSuggestion(s)}
-                        className="text-[11px] border border-gray-300 rounded-full px-3 py-1 text-gray-600 bg-white hover:border-[#0fd4b4] hover:text-[#0fd4b4] transition-colors"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
+          {messages.map((msg, i) => {
+            const isAssistant = msg.role === 'assistant';
+            const hasAnyContent = msg.content || msg.toolResults?.length || msg.pendingActions?.length || msg.error;
+            return (
+              <div key={i} className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}>
+                <div
+                  className={
+                    isAssistant
+                      ? 'max-w-[92%] bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3'
+                      : 'max-w-[88%] bg-[#0fd4b4] text-white rounded-2xl rounded-tr-none px-4 py-3'
+                  }
+                >
+                  {msg.content && <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>}
+                  {isAssistant && !hasAnyContent && (
+                    <p className="text-sm text-gray-500 italic">Thinking…</p>
+                  )}
+                  {isAssistant && msg.error && (
+                    <div className="mt-2 text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1">
+                      Error: {msg.error}
+                    </div>
+                  )}
+                  {isAssistant && (
+                    <ActivityTimeline calls={msg.toolCalls || []} results={msg.toolResults || []} />
+                  )}
+                  {isAssistant && msg.toolResults?.map((tr, j) => (
+                    <ToolResultCard key={`tr-${j}`} tool={tr.tool} data={tr.data} />
+                  ))}
+                  {isAssistant && msg.pendingActions?.map((pa, j) => (
+                    <PendingActionCard
+                      key={`pa-${j}`}
+                      action={pa}
+                      onApprove={() => handleApprove(i, j)}
+                      onReject={() => handleReject(i, j)}
+                    />
+                  ))}
+                  {isAssistant && msg.suggestions?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {msg.suggestions.map((s, k) => (
+                        <button
+                          key={`sg-${k}`}
+                          onClick={() => handleSuggestion(s)}
+                          className="text-[11px] border border-gray-300 rounded-full px-3 py-1 text-gray-600 bg-white hover:border-[#0fd4b4] hover:text-[#0fd4b4] transition-colors"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {isStreaming && (
             <div className="flex justify-start">
               <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3">

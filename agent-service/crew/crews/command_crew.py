@@ -23,14 +23,25 @@ class CommandCrew:
         task = Task(
             description=(
                 f"User request: \"{user_message}\"\n\n"
-                "Decide whether to answer directly or to use one or more tools. "
-                "If you need ids to act, list/search first. For any mutating action, the "
-                "corresponding tool will prepare it for human approval — call the tool with "
-                "the right parameters and the system will handle the rest. After tool use, "
-                "write a short, clear final answer for the user. Do not output JSON or "
-                "markdown code fences in your final answer."
+                "Decide whether to answer directly or to use one or more tools.\n"
+                "- If you need an entity id to act, call the matching list/search "
+                "tool FIRST and use the id it returns.\n"
+                "- For any mutating action (create / update / delete / launch / "
+                "stop / approve / reject), call the corresponding tool — it will "
+                "prepare the action for human approval. Do not claim the action "
+                "is done; say it is awaiting approval.\n"
+                "- Never invent ids, names, counts, or metrics. If you do not have "
+                "the data, say so.\n\n"
+                "FINAL ANSWER FORMAT:\n"
+                "- Plain natural language. Short, clear, and directly answering "
+                "the request.\n"
+                "- No JSON, no markdown headings, no code fences.\n"
+                "- If you returned a list, summarize the top items inline."
             ),
-            expected_output="A short, clear natural-language answer to the user's request.",
+            expected_output=(
+                "A short, clear natural-language answer to the user's request. "
+                "No JSON, no markdown code fences."
+            ),
             agent=self.agent,
         )
 
@@ -71,7 +82,17 @@ class CommandCrew:
         if result is None:
             return f"I received: {fallback}"
         raw = getattr(result, 'raw', None) or getattr(result, 'output', None) or str(result)
-        return (raw or '').strip() or f"I received: {fallback}"
+        text = (raw or '').strip()
+        if not text:
+            return f"I received: {fallback}"
+        # Strip stray markdown code fences the LLM occasionally emits.
+        fence_match = re.match(r'^```(?:[a-zA-Z]+)?\s*\n?(.*?)\n?```\s*$', text, re.DOTALL)
+        if fence_match:
+            text = fence_match.group(1).strip()
+        # Strip surrounding triple backticks left over from partial fences.
+        text = re.sub(r'^```[a-zA-Z]*\s*', '', text)
+        text = re.sub(r'\s*```$', '', text)
+        return text.strip() or f"I received: {fallback}"
 
     def _suggest_followups(self, user_message: str, answer: str) -> list[str]:
         prompt = (

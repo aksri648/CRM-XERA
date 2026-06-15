@@ -11,60 +11,73 @@ class OpportunityCrew:
         self.scanner = create_opportunity_scanner(self.llm)
 
     def run(self, context: dict) -> dict:
+        current_year = datetime.now().year
         task = Task(
-            description=f"""You are a Marketing Opportunity Analyst for a D2C brand.
+            description=f"""You are the Marketing Opportunity Analyst for a D2C brand.
 
 CONTEXT FROM CUSTOMER DATA:
 {context}
 
 YOUR OBJECTIVE:
-Combine the customer data patterns above with real-time web intelligence to identify the TOP marketing opportunities this brand is missing.
+Fuse the customer data above with real-time web intelligence to surface the TOP
+marketing opportunities this brand is currently missing.
 
-STEP 1: Use the tavily_search tool to research current marketing trends:
-Search for "top marketing opportunities trends campaigns 2024 2025 D2C brands" to get current campaign ideas and trending strategies.
+STEP 1 — RESEARCH (use the tavily_search tool):
+Issue 1–3 focused queries. Use the CURRENT year ({current_year}) in every query —
+do not hard-code historical years. Suggested queries:
+- "top D2C marketing campaigns trends {current_year}"
+- "trending marketing catchphrases viral slogans {current_year}"
+- "high-converting retention campaign tactics {current_year}"
 
-Search for "trending marketing catchphrases slogans viral campaigns" to find high-converting message angles and phrases that are working right now.
+STEP 2 — ANALYZE the customer data for patterns:
+- High-LTV segments with low recent engagement
+- Cross-sell / upsell gaps (e.g. fashion buyers with no beauty purchases)
+- Lapsed cohorts worth reactivating
+- Channels with untapped potential
+- Demographics underserved by current campaigns
 
-STEP 2: Analyze the customer data for patterns:
-- Look for segments with high LTV but low engagement
-- Find cross-sell and upsell opportunities
-- Identify lapsed customers worth reactivating
-- Spot channels with untapped potential
-- Find demographics underserved by current campaigns
+STEP 3 — SYNTHESIZE internal data + external trends into opportunities that:
+- Address concrete gaps visible in the data
+- Leverage trending catchphrases or angles you found via Tavily
+- Target a specific cohort, not "all customers"
+- State a recommended channel, message angle, and revenue estimate
 
-STEP 3: Synthesize internal data + external trends to generate opportunities that:
-- Address gaps in the current marketing approach
-- Leverage trending catchphrases and campaign styles that are working
-- Target high-value customer segments identified in the data
-- Specify exact channels, message angles, and revenue potential
-
-EXPECTED OUTPUT - Return a JSON object with this exact structure:
+REQUIRED OUTPUT SHAPE:
 {{
   "opportunities": [
     {{
-      "title": "Opportunity name (compelling, action-oriented)",
+      "title": "Compelling, action-oriented (5–10 words)",
       "description": "What the opportunity is and why it matters",
-      "audience_description": "Exact description of who to target",
-      "audience_size_estimate": number,
-      "expected_revenue_inr": number,
-      "recommended_channel": "whatsapp/email/sms/instagram/facebook/google",
-      "message_angle": "emotional/transactional/loyalty/urgency/cultural",
-      "ai_reasoning": "Why this opportunity exists and why it will work based on data + trends"
+      "audience_description": "Specific cohort to target",
+      "audience_size_estimate": <int>,
+      "expected_revenue_inr": <number>,
+      "recommended_channel": "whatsapp|email|sms|instagram|facebook|google",
+      "message_angle": "emotional|transactional|loyalty|urgency|cultural",
+      "ai_reasoning": "Why this exists and why it will land — cite BOTH the internal data signal AND the external trend signal"
     }}
   ],
-  "total_revenue_potential_inr": sum of all opportunity revenues,
-  "scan_summary": "2-3 sentence summary of key findings",
-  "data_analyzed": {{"customers_scanned": number, "orders_scanned": number}},
-  "scan_timestamp": ISO timestamp
+  "total_revenue_potential_inr": <sum of opportunity revenues>,
+  "scan_summary": "2–3 sentence summary of the headline findings",
+  "data_analyzed": {{"customers_scanned": <int>, "orders_scanned": <int>}},
+  "scan_timestamp": "<ISO 8601 timestamp>"
 }}
 
-IMPORTANT: 
-- Use tavily_search to get current marketing trend data
-- Combine BOTH internal customer patterns AND external trend research
-- Make opportunities specific to the data provided, not generic suggestions
-- Message angles should reference any relevant trending catchphrases you found
-- Revenue estimates should be realistic and based on the data patterns""",
-            expected_output='JSON object with opportunities list, total_revenue_potential_inr, scan_summary, data_analyzed, scan_timestamp. Must include ai_reasoning for each opportunity.',
+RULES:
+- Return 3–6 opportunities. Quality over quantity.
+- ai_reasoning is REQUIRED for every opportunity and must reference real data
+  and real trend signals — never generic.
+- Revenue estimates must be plausible given audience size and channel — show
+  the math implicitly in ai_reasoning.
+- Use ONLY the channel and message_angle enum values listed above.
+
+OUTPUT DISCIPLINE:
+Return ONLY raw JSON matching the shape above. No markdown, no code fences,
+no commentary.""",
+            expected_output=(
+                'A single JSON object with keys: opportunities (3–6 items, each '
+                'including ai_reasoning), total_revenue_potential_inr, scan_summary, '
+                'data_analyzed, scan_timestamp. No prose, no fences.'
+            ),
             agent=self.scanner,
             output_pydantic=OpportunityScanResult,
         )
