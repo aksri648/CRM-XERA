@@ -13,7 +13,11 @@ import AgentResponseRenderer from '../components/AgentResponseRenderer';
 import api from '../lib/api';
 
 const suggestionPills = [
-  'Active Buyers', 'At risk of losing buyers', 'VIP', 'New Buyers', 'Value Buyers',
+  'VIP customers, WhatsApp, festive jewelry drop',
+  'Win back lapsed skincare buyers via email',
+  'Onboard first-time fitness app users on push',
+  'Launch a B2B SaaS webinar for Series-B CFOs',
+  'Reactivate Tier-2 city grocery shoppers on SMS',
 ];
 
 const EMPTY_FORM = { name: '', segmentId: '', channel: 'whatsapp', messageTemplate: '', category: '' };
@@ -108,13 +112,29 @@ export default function AIStudio() {
     const targetAudience = details?.['Target Audience'] || details?.target_audience || '';
     const description = details?.['Description'] || details?.description || '';
     const productCategory = details?.['ProductCategory'] || details?.product_category || '';
+    const channel = (details?.['RecommendedChannel'] || details?.recommended_channel || 'whatsapp').toLowerCase();
+    const variants = details?.['MessageVariants'] || details?.message_variants || [];
+    const tagline = details?.['Tagline'] || details?.tagline || '';
+    const catchphrases = details?.['Catchphrases'] || details?.catchphrases || [];
+    const cta = details?.['CTA'] || details?.cta || '';
+    const reasoning = details?.['AIReasoning'] || details?.ai_reasoning || '';
+    const messageBody = variants[0]?.body || variants[0]?.message || description;
+    const allowedChannels = ['whatsapp', 'email', 'sms', 'rcs'];
+    const safeChannel = allowedChannels.includes(channel) ? channel : 'whatsapp';
     try {
       await api.post('/api/proposals', {
         title,
         segmentId: null,
-        channel: 'whatsapp',
-        messageTemplate: description,
-        aiReasoning: `Target audience: ${targetAudience}. Product category: ${productCategory}`,
+        channel: safeChannel,
+        messageTemplate: messageBody,
+        aiReasoning: [
+          reasoning,
+          `Target audience: ${targetAudience}`,
+          `Product category: ${productCategory}`,
+          tagline ? `Tagline: ${tagline}` : '',
+          cta ? `CTA: ${cta}` : '',
+          catchphrases.length ? `Catchphrases: ${catchphrases.join(' · ')}` : '',
+        ].filter(Boolean).join('\n'),
       });
       toast.success('Campaign proposal sent to Agent Proposals!');
       navigate('/proposals');
@@ -127,11 +147,15 @@ export default function AIStudio() {
     const title = details?.['Campaign Title'] || details?.campaign_title || '';
     const description = details?.['Description'] || details?.description || '';
     const productCategory = details?.['ProductCategory'] || details?.product_category || '';
+    const channel = (details?.['RecommendedChannel'] || details?.recommended_channel || 'whatsapp').toLowerCase();
+    const variants = details?.['MessageVariants'] || details?.message_variants || [];
+    const messageBody = variants[0]?.body || variants[0]?.message || description;
+    const allowedChannels = ['whatsapp', 'email', 'sms', 'rcs'];
     setCampaignForm({
       name: title,
       segmentId: '',
-      channel: 'whatsapp',
-      messageTemplate: description,
+      channel: allowedChannels.includes(channel) ? channel : 'whatsapp',
+      messageTemplate: messageBody,
       category: productCategory,
     });
     setShowCampaignModal(true);
@@ -165,13 +189,13 @@ export default function AIStudio() {
         <Sparkles size={64} className="text-[#0fd4b4] animate-pulse" />
         <h2 className="text-xl font-bold text-gray-900">What marketing goal would you like to achieve?</h2>
         <p className="text-gray-500 text-sm max-w-lg text-center">
-          Describe your objective and Xeno AI will generate a complete campaign strategy including audience, channels, messaging.
+          Describe any audience, any product, any channel. Xeno AI returns a full blueprint — audience persona, channel, catchphrases, two message variants, KPIs, and reasoning.
         </p>
-        <div className="flex flex-wrap justify-center gap-2 mt-4">
+        <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl">
           {suggestionPills.map(pill => (
             <button
               key={pill}
-              onClick={() => handleSend(`Create a marketing campaign targeting the "${pill}" customer segment.`)}
+              onClick={() => handleSend(pill)}
               className="border border-[#0fd4b4] text-[#0fd4b4] rounded-full px-4 py-2 text-sm hover:bg-[#0fd4b4] hover:text-white transition-colors"
             >
               {pill}

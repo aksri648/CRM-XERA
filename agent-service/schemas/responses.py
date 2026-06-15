@@ -87,6 +87,18 @@ class CampaignDetails(BaseModel):
     target_audience: str = Field(alias="Target Audience")
     description: str = Field(alias="Description")
     product_category: str = Field(alias="ProductCategory")
+    tagline: str = Field(default="", alias="Tagline")
+    audience_persona: str = Field(default="", alias="AudiencePersona")
+    recommended_channel: str = Field(default="whatsapp", alias="RecommendedChannel")
+    tone: str = Field(default="", alias="Tone")
+    catchphrases: list[str] = Field(default_factory=list, alias="Catchphrases")
+    message_variants: list[dict] = Field(default_factory=list, alias="MessageVariants")
+    cta: str = Field(default="", alias="CTA")
+    send_time_suggestion: str = Field(default="", alias="SendTimeSuggestion")
+    personalization_tokens: list[str] = Field(default_factory=list, alias="PersonalizationTokens")
+    kpis: list[str] = Field(default_factory=list, alias="KPIs")
+    confidence_score: float = Field(default=0.0, alias="ConfidenceScore")
+    ai_reasoning: str = Field(default="", alias="AIReasoning")
 
 
 class CampaignDetailsResult(BaseModel):
